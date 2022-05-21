@@ -29,8 +29,9 @@ public class NavigationFactory : NSObject, FlutterStreamHandler
     var _voiceUnits = "imperial"
     var _mapStyleUrlDay: String?
     var _mapStyleUrlNight: String?
-    var _maxHeight: String?
-    var _maxWeight: String? 
+    var _maxHeight: Double?
+    var _maxWeight: Double?
+    var _maxWidth: Double? 
     var _zoom: Double = 13.0
     var _tilt: Double = 0.0
     var _bearing: Double = 0.0

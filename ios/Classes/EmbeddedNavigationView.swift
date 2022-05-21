@@ -105,6 +105,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     {
         navigationMapView = NavigationMapView(frame: frame)
         navigationMapView.delegate = self
+        navigationMapView.userLocationStyle = .puck2D()
 
         if(self.arguments != nil)
         {
@@ -228,8 +229,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         }
         _mapStyleUrlDay = arguments?["mapStyleUrlDay"] as? String
         _mapStyleUrlNight = arguments?["mapStyleUrlNight"] as? String
-        _maxHeight = arguments?["maxHeight"] as? String
-        _maxWeight = arguments?["maxWeight"] as? String
+        _maxHeight = arguments?["maxHeight"] as? Double
+        _maxWeight = arguments?["maxWeight"] as? Double
+        _maxWidth = arguments?["maxWidth"] as? Double
         
         var mode: ProfileIdentifier = .automobileAvoidingTraffic
 
@@ -248,13 +250,17 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
         var items = [URLQueryItem]();
         
-        if(!_maxHeight?.isEmpty)
+        if(_maxHeight != nil)
         {
             items.append(URLQueryItem(name: "max_height", value: _maxHeight))
         }
-        if(!_maxWeight?.isEmpty)
+        if(_maxWeight != nil)
         {
             items.append(URLQueryItem(name: "max_weight", value: _maxWeight))
+        }
+        if(_maxLength != nil)
+        {
+            items.append(URLQueryItem(name: "max_width", value: _maxWidth))
         }
         
         let routeOptions = NavigationRouteOptions(waypoints: _wayPoints, profileIdentifier: mode, queryItems: items)
@@ -270,7 +276,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
         // Generate the route object and draw it on the map
         _ = Directions.shared.calculate(routeOptions) { [weak self] (session, result) in
-
             guard case let .success(response) = result, let strongSelf = self else {
                 flutterResult(false)
                 self?.sendEvent(eventType: MapBoxEventType.route_build_failed)
@@ -463,5 +468,4 @@ extension FlutterMapboxNavigationView : UIGestureRecognizerDelegate {
             }
         }
     }
-    
 }
