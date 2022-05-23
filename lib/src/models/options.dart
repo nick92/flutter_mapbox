@@ -42,11 +42,9 @@ class MapBoxOptions {
   /// The unit of measure said in voice instructions
   final VoiceUnits? units;
 
-  final double? maxHeight;
-
-  final double? maxWeight;
-
-  final double? maxLength;
+  String? maxHeight;
+  String? maxWeight;
+  String? maxWidth;
 
   /// If the value of this property is true, a returned route may require an immediate U-turn at an intermediate waypoint. At an intermediate waypoint, if the value of this property is false, each returned route may continue straight ahead or turn to either side but may not U-turn. This property has no effect if only two waypoints are specified.
   /// same as 'not continueStraight' on Android
@@ -101,7 +99,7 @@ class MapBoxOptions {
       this.simulateRoute,
       this.isOptimized,
       this.maxHeight,
-      this.maxLength,
+      this.maxWidth,
       this.maxWeight,
       this.mapStyleUrlDay,
       this.mapStyleUrlNight,
@@ -150,7 +148,7 @@ class MapBoxOptions {
 
     if (maxHeight != null) optionsMap['maxHeight'] = maxHeight;
     if (maxWeight != null) optionsMap['maxWeight'] = maxWeight;
-    if (maxLength != null) optionsMap['maxLength'] = maxLength;
+    if (maxWidth != null) optionsMap['maxWidth'] = maxWidth;
 
     addIfNonNull('padding', <double?>[
       padding?.top,

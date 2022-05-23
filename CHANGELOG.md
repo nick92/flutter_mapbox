@@ -1,3 +1,8 @@
+## 0.0.4
+
+* Big fixes for width switch over
+
+
 ## 0.0.3
 
 * Swap length with width

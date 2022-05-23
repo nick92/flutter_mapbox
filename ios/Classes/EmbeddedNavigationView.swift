@@ -229,9 +229,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         }
         _mapStyleUrlDay = arguments?["mapStyleUrlDay"] as? String
         _mapStyleUrlNight = arguments?["mapStyleUrlNight"] as? String
-        _maxHeight = arguments?["maxHeight"] as? Double
-        _maxWeight = arguments?["maxWeight"] as? Double
-        _maxWidth = arguments?["maxWidth"] as? Double
+        _maxHeight = arguments?["maxHeight"] as? String
+        _maxWeight = arguments?["maxWeight"] as? String
+        _maxWidth = arguments?["maxWidth"] as? String
         
         var mode: ProfileIdentifier = .automobileAvoidingTraffic
 
@@ -258,7 +258,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         {
             items.append(URLQueryItem(name: "max_weight", value: _maxWeight))
         }
-        if(_maxLength != nil)
+        if(_maxWidth != nil)
         {
             items.append(URLQueryItem(name: "max_width", value: _maxWidth))
         }
