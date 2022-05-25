@@ -1,3 +1,11 @@
+## 0.0.6
+
+* re-work for Android dev
+
+## 0.0.5
+
+* initial Android dev work
+
 ## 0.0.4
 
 * Big fixes for width switch over
