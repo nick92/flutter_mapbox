@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.NonNull;
-import com.nick92.flutter_mapbox.activity.NavigationActivity
+import com.nick92.flutter_mapbox.activity.NavigationLauncher
 import com.nick92.flutter_mapbox.factory.EmbeddedNavigationViewFactory
 
 import com.mapbox.api.directions.v5.DirectionsCriteria

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.view.View
 import android.content.Context
 
+import com.nick92.flutter_mapbox.TurnByTurn
 import com.nick92.flutter_mapbox.databinding.MapActivityBinding
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel

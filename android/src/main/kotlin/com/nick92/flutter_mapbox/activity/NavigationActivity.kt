@@ -104,7 +104,7 @@ class NavigationActivity : AppCompatActivity() {
                 finish()
             }
         }
-        registerReceiver(receiver, IntentFilter("com.my.mapbox.broadcast.STOP_NAVIGATION"))
+        registerReceiver(receiver, IntentFilter(NavigationLauncher.KEY_STOP_NAVIGATION))
 
         val p = intent.getSerializableExtra("waypoints") as? MutableList<Point>
         if(p != null) points = p
