@@ -106,6 +106,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         navigationMapView = NavigationMapView(frame: frame)
         navigationMapView.delegate = self
         navigationMapView.userLocationStyle = .puck2D()
+        
+        print(self.arguments)
 
         if(self.arguments != nil)
         {
@@ -121,6 +123,11 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             _tilt = arguments?["tilt"] as? Double ?? _tilt
             _animateBuildRoute = arguments?["animateBuildRoute"] as? Bool ?? _animateBuildRoute
             _longPressDestinationEnabled = arguments?["longPressDestinationEnabled"] as? Bool ?? _longPressDestinationEnabled
+            _maxHeight = arguments?["maxHeight"] as? String
+            _maxWeight = arguments?["maxWeight"] as? String
+            _maxWidth = arguments?["maxWidth"] as? String
+            
+            print(_maxHeight)
 
             if(_mapStyleUrlDay != nil)
             {
@@ -217,21 +224,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             i+=1
         }
 
-        _language = arguments?["language"] as? String ?? _language
-        _voiceUnits = arguments?["units"] as? String ?? _voiceUnits
-        _simulateRoute = arguments?["simulateRoute"] as? Bool ?? _simulateRoute
-        _isOptimized = arguments?["isOptimized"] as? Bool ?? _isOptimized
-        _allowsUTurnAtWayPoints = arguments?["allowsUTurnAtWayPoints"] as? Bool
-        _navigationMode = arguments?["mode"] as? String ?? "drivingWithTraffic"
-        if(_wayPoints.count > 3 && arguments?["mode"] == nil)
-        {
-            _navigationMode = "driving"
-        }
-        _mapStyleUrlDay = arguments?["mapStyleUrlDay"] as? String
-        _mapStyleUrlNight = arguments?["mapStyleUrlNight"] as? String
-        _maxHeight = arguments?["maxHeight"] as? String
-        _maxWeight = arguments?["maxWeight"] as? String
-        _maxWidth = arguments?["maxWidth"] as? String
+        print(_wayPoints)
         
         var mode: ProfileIdentifier = .automobileAvoidingTraffic
 
@@ -263,6 +256,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             items.append(URLQueryItem(name: "max_width", value: _maxWidth))
         }
         
+        print(items)
+        
         let routeOptions = NavigationRouteOptions(waypoints: _wayPoints, profileIdentifier: mode, queryItems: items)
 
         if (_allowsUTurnAtWayPoints != nil)
@@ -276,15 +271,20 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
         // Generate the route object and draw it on the map
         _ = Directions.shared.calculate(routeOptions) { [weak self] (session, result) in
-            guard case let .success(response) = result, let strongSelf = self else {
+            switch result {
+            case .failure(let error):
+                print(error.localizedDescription)
                 flutterResult(false)
                 self?.sendEvent(eventType: MapBoxEventType.route_build_failed)
                 return
+            case .success(let response):
+                guard let strongSelf = self else { return }
+             
+                strongSelf.routeResponse = response
+                strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
+                strongSelf.navigationMapView?.showcase(response.routes!, routesPresentationStyle: .all(shouldFit: true), animated: true)
+                flutterResult(true)
             }
-            strongSelf.routeResponse = response
-            strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
-            strongSelf.navigationMapView?.showcase(response.routes!, routesPresentationStyle: .all(shouldFit: true), animated: true)
-            flutterResult(true)
         }
     }
 
@@ -443,27 +443,54 @@ extension FlutterMapboxNavigationView : UIGestureRecognizerDelegate {
                                   longitude: userLocation.coordinate.longitude)
         let userWaypoint = Waypoint(location: location, heading: userLocation.heading, name: "Current Location")
         let destinationWaypoint = Waypoint(coordinate: destination)
+        
+        var mode: ProfileIdentifier = .automobileAvoidingTraffic
 
-        let routeOptions = NavigationRouteOptions(waypoints: [userWaypoint, destinationWaypoint])
+        if (_navigationMode == "cycling")
+        {
+            mode = .cycling
+        }
+        else if(_navigationMode == "driving")
+        {
+            mode = .automobile
+        }
+        else if(_navigationMode == "walking")
+        {
+            mode = .walking
+        }
+        
+        var items = [URLQueryItem]();
+        
+        if(_maxHeight != nil)
+        {
+            items.append(URLQueryItem(name: "max_height", value: _maxHeight))
+        }
+        if(_maxWeight != nil)
+        {
+            items.append(URLQueryItem(name: "max_weight", value: _maxWeight))
+        }
+        if(_maxWidth != nil)
+        {
+            items.append(URLQueryItem(name: "max_width", value: _maxWidth))
+        }
+        
+        print(items)
+
+        let routeOptions = NavigationRouteOptions(waypoints: [userWaypoint, destinationWaypoint], profileIdentifier: mode, queryItems: items)
         
         Directions.shared.calculate(routeOptions) { [weak self] (session, result) in
-
             if let strongSelf = self {
-
                 switch result {
                 case .failure(let error):
                     print(error.localizedDescription)
                     strongSelf.sendEvent(eventType: MapBoxEventType.route_build_failed)
+                    return
                 case .success(let response):
-                    guard let routes = response.routes, let route = response.routes?.first else {
-                        strongSelf.sendEvent(eventType: MapBoxEventType.route_build_failed)
-                        return
-                    }
+                    guard let strongSelf = self else { return }
+                 
+                    strongSelf.routeResponse = response
                     strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
-                    strongSelf.routeOptions = routeOptions
-                    strongSelf._routes = routes
-                    strongSelf.navigationMapView.show(routes)
-                    //strongSelf.navigationMapView.showWaypoints(on: route)
+                    strongSelf.navigationMapView?.showcase(response.routes!, routesPresentationStyle: .all(shouldFit: true), animated: true)
                 }
             }
         }
