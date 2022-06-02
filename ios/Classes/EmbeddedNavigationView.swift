@@ -107,14 +107,14 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         navigationMapView.delegate = self
         navigationMapView.userLocationStyle = .puck2D()
         
-        print(self.arguments)
-
         if(self.arguments != nil)
         {
             _language = arguments?["language"] as? String ?? _language
             _voiceUnits = arguments?["units"] as? String ?? _voiceUnits
             _simulateRoute = arguments?["simulateRoute"] as? Bool ?? _simulateRoute
             _isOptimized = arguments?["isOptimized"] as? Bool ?? _isOptimized
+            _alternavites = arguments?["alternatives"] as? Bool ?? _alternavites
+            _enableRefresh = arguments?["enableRefresh"] as? Bool ?? _enableRefresh
             _allowsUTurnAtWayPoints = arguments?["allowsUTurnAtWayPoints"] as? Bool
             _navigationMode = arguments?["mode"] as? String ?? "drivingWithTraffic"
             _mapStyleUrlDay = arguments?["mapStyleUrlDay"] as? String
@@ -126,8 +126,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             _maxHeight = arguments?["maxHeight"] as? String
             _maxWeight = arguments?["maxWeight"] as? String
             _maxWidth = arguments?["maxWidth"] as? String
-            
-            print(_maxHeight)
 
             if(_mapStyleUrlDay != nil)
             {
@@ -176,14 +174,20 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     {
         if routeResponse == nil
         {
+            result(true)
             return
         }
 
-        setupMapView()
-        self.view().setNeedsDisplay()
-
+        navigationMapView?.removeRoutes()
+        navigationMapView?.removeArrow()
+        navigationMapView?.removeRouteDurations()
+        navigationMapView?.removeWaypoints()
+        _distanceRemaining = 0
+        _durationRemaining = 0
+        
         routeResponse = nil
         sendEvent(eventType: MapBoxEventType.navigation_cancelled)
+        result(true)
     }
 
     func buildRoute(arguments: NSDictionary?, flutterResult: @escaping FlutterResult)
@@ -223,8 +227,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             _wayPoints.append(point)
             i+=1
         }
-
-        print(_wayPoints)
         
         var mode: ProfileIdentifier = .automobileAvoidingTraffic
 
@@ -255,15 +257,16 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         {
             items.append(URLQueryItem(name: "max_width", value: _maxWidth))
         }
-        
-        print(items)
-        
+                
         let routeOptions = NavigationRouteOptions(waypoints: _wayPoints, profileIdentifier: mode, queryItems: items)
 
         if (_allowsUTurnAtWayPoints != nil)
         {
             routeOptions.allowsUTurnAtWaypoint = _allowsUTurnAtWayPoints!
         }
+        
+        routeOptions.refreshingEnabled = _enableRefresh
+        routeOptions.includesAlternativeRoutes = _alternavites
 
         routeOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
         routeOptions.locale = Locale(identifier: _language)
@@ -279,10 +282,13 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 return
             case .success(let response):
                 guard let strongSelf = self else { return }
-             
                 strongSelf.routeResponse = response
-                strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
                 strongSelf.navigationMapView?.showcase(response.routes!, routesPresentationStyle: .all(shouldFit: true), animated: true)
+                
+                strongSelf._distanceRemaining = response.routes!.first?.distance
+                strongSelf._durationRemaining = response.routes!.first?.expectedTravelTime
+                
+                strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
                 flutterResult(true)
             }
         }
@@ -407,10 +413,10 @@ extension FlutterMapboxNavigationView : NavigationServiceDelegate {
 
 extension FlutterMapboxNavigationView : NavigationMapViewDelegate {
     
-//    public func mapView(_ mapView: NavigationMapView, didFinishLoading style: Style) {
-//        _mapInitialized = true
-//        sendEvent(eventType: MapBoxEventType.map_ready)
-//    }
+    public func mapView(_ mapView: NavigationMapView) {
+        _mapInitialized = true
+        sendEvent(eventType: MapBoxEventType.map_ready)
+    }
 
     public func navigationMapView(_ mapView: NavigationMapView, didSelect route: Route) {
         self.selectedRouteIndex = self.routeResponse!.routes?.firstIndex(of: route) ?? 0
@@ -473,8 +479,6 @@ extension FlutterMapboxNavigationView : UIGestureRecognizerDelegate {
         {
             items.append(URLQueryItem(name: "max_width", value: _maxWidth))
         }
-        
-        print(items)
 
         let routeOptions = NavigationRouteOptions(waypoints: [userWaypoint, destinationWaypoint], profileIdentifier: mode, queryItems: items)
         
