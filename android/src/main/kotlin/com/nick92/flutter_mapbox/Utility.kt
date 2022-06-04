@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -76,6 +77,7 @@ import com.nick92.flutter_mapbox.databinding.MapActivityBinding
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.lang.Exception
 import java.util.*
 
 
@@ -242,7 +244,7 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
         when (methodCall.method) {
             "getPlatformVersion" -> {
-                result.success("Android ${android.os.Build.VERSION.RELEASE}")
+                result.success("Android ${Build.VERSION.RELEASE}")
             }
             "enableOfflineRouting" -> {
                 //downloadRegionForOfflineRouting(call, result)
@@ -922,7 +924,7 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
                 val progressEvent = MapBoxRouteProgressEvent(routeProgress)
                 PluginUtilities.sendEvent(progressEvent)
 
-            } catch (e: java.lang.Exception) {
+            } catch (e: Exception) {
 
             }
         }

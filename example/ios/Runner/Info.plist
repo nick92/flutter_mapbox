@@ -45,18 +45,5 @@
 	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Allow trucknav to use your location</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Allow trucknav to use your location</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Allow trucknav to use your location</string>
-	<key>MBXAccessToken</key>
-	<string>pk.eyJ1Ijoibmljazk5MiIsImEiOiJja3pvYXZnbmQwYnA3Mm9xbWd1Yng4Nm5yIn0.jG5ewvKzX8Hkv93h_G3oIQ</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
-		<string>location</string>
-	</array>
 </dict>
 </plist>

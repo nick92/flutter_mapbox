@@ -1,3 +1,7 @@
+## 0.1.0
+
+* finalise android dev work
+
 ## 0.0.9
 
 * change context create override to nullable to fix error

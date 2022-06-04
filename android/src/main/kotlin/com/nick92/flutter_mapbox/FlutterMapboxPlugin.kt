@@ -43,8 +43,6 @@ public class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel
 
     platformViewRegistry = flutterPluginBinding.platformViewRegistry
     binaryMessenger = messenger;
-
-
   }
 
   companion object {
