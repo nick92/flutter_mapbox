@@ -31,7 +31,9 @@ public class NavigationFactory : NSObject, FlutterStreamHandler
     var _mapStyleUrlNight: String?
     var _maxHeight: String?
     var _maxWeight: String?
-    var _maxWidth: String? 
+    var _maxWidth: String?
+    var _alternatives: Bool = false
+    var _enableRefresh: Bool = false
     var _zoom: Double = 13.0
     var _tilt: Double = 0.0
     var _bearing: Double = 0.0

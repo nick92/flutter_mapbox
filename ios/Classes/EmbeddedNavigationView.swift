@@ -113,7 +113,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             _voiceUnits = arguments?["units"] as? String ?? _voiceUnits
             _simulateRoute = arguments?["simulateRoute"] as? Bool ?? _simulateRoute
             _isOptimized = arguments?["isOptimized"] as? Bool ?? _isOptimized
-            _alternavites = arguments?["alternatives"] as? Bool ?? _alternavites
+            _alternatives = arguments?["alternatives"] as? Bool ?? _alternatives
             _enableRefresh = arguments?["enableRefresh"] as? Bool ?? _enableRefresh
             _allowsUTurnAtWayPoints = arguments?["allowsUTurnAtWayPoints"] as? Bool
             _navigationMode = arguments?["mode"] as? String ?? "drivingWithTraffic"
@@ -266,7 +266,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         }
         
         routeOptions.refreshingEnabled = _enableRefresh
-        routeOptions.includesAlternativeRoutes = _alternavites
+        routeOptions.includesAlternativeRoutes = _alternatives
 
         routeOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
         routeOptions.locale = Locale(identifier: _language)
