@@ -1,3 +1,19 @@
+## 0.1.0
+
+* finalise android dev work
+
+## 0.0.9
+
+* change context create override to nullable to fix error
+
+## 0.0.8
+
+* attempt to fix oncreate error
+
+## 0.0.7
+
+* fix for Android missing deps
+
 ## 0.0.6
 
 * re-work for Android dev

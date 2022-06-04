@@ -1,24 +1,29 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_mapbox/flutter_mapbox.dart';
+import 'package:flutter_mapbox/flutter_mapbox_platform_interface.dart';
+import 'package:flutter_mapbox/flutter_mapbox_method_channel.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+
+class MockFlutterMapboxPlatform 
+    with MockPlatformInterfaceMixin
+    implements FlutterMapboxPlatform {
+
+  @override
+  Future<String?> getPlatformVersion() => Future.value('42');
+}
 
 void main() {
-  const MethodChannel channel = MethodChannel('flutter_mapbox');
+  final FlutterMapboxPlatform initialPlatform = FlutterMapboxPlatform.instance;
 
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUp(() {
-    channel.setMockMethodCallHandler((MethodCall methodCall) async {
-      return '42';
-    });
-  });
-
-  tearDown(() {
-    channel.setMockMethodCallHandler(null);
+  test('$MethodChannelFlutterMapbox is the default instance', () {
+    expect(initialPlatform, isInstanceOf<MethodChannelFlutterMapbox>());
   });
 
   test('getPlatformVersion', () async {
-    MapBoxNavigation directions = MapBoxNavigation();
-    expect(await directions.platformVersion, '42');
+    FlutterMapbox flutterMapboxPlugin = FlutterMapbox();
+    MockFlutterMapboxPlatform fakePlatform = MockFlutterMapboxPlatform();
+    FlutterMapboxPlatform.instance = fakePlatform;
+  
+    expect(await flutterMapboxPlugin.getPlatformVersion(), '42');
   });
 }

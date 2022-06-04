@@ -28,6 +28,7 @@ class EmbeddedNavigationMapView(context: Context, activity: Activity, binding: M
         initFlutterChannelHandlers()
         initNavigation()
     }
+
     override fun getView(): View {
         val view: View = binding.root;
         return view;
