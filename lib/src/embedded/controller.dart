@@ -112,9 +112,23 @@ class MapBoxNavigationViewController {
     return _methodChannel.invokeMethod('startNavigation', args);
   }
 
-  ///Ends Navigation and Closes the Navigation View
+  /// Starts the Navigation in full screen mode
+  Future<bool?> startFullScreenNavigation({MapBoxOptions? options}) async {
+    Map<String, dynamic>? args;
+    if (options != null) args = options.toMap();
+    //_routeEventSubscription = _streamRouteEvent.listen(_onProgressData);
+    return _methodChannel.invokeMethod('startFullScreenNavigation', args);
+  }
+
+  /// Ends Navigation and Closes the Navigation View
   Future<bool?> finishNavigation() async {
     var success = await _methodChannel.invokeMethod('finishNavigation', null);
+    return success;
+  }
+
+  /// Recenter map from user action during navigation
+  Future<void> reCenterCamera() async {
+    var success = await _methodChannel.invokeMethod('reCenter', null);
     return success;
   }
 

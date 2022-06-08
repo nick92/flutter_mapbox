@@ -77,6 +77,10 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             {
                 strongSelf.startEmbeddedNavigation(arguments: arguments, result: result)
             }
+            else if(call.method == "startFullScreenNavigation")
+            {
+                strongSelf.startNonEmbeddedNavigation(arguments: arguments, result: result)
+            }
             else if(call.method == "reCenter"){
                 //used to recenter map from user action during navigation
                 strongSelf.navigationMapView.navigationCamera.follow()
@@ -329,6 +333,43 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         flutterViewController.didMove(toParent: flutterViewController)
         result(true)
 
+    }
+        
+    func startNonEmbeddedNavigation(arguments: NSDictionary?, result: @escaping FlutterResult) {
+        guard let response = self.routeResponse else { return }
+        isEmbeddedNavigation = false
+        
+        let navLocationManager = self._simulateRoute ? SimulatedLocationManager(route: response.routes!.first!) : NavigationLocationManager()
+        navigationService = MapboxNavigationService(routeResponse: response,
+                                                            routeIndex: selectedRouteIndex,
+                                                            routeOptions: routeOptions!,
+                                                            routingProvider: MapboxRoutingProvider(.hybrid),
+                                                            credentials: NavigationSettings.shared.directions.credentials,
+                                                            locationSource: navLocationManager,
+                                                    simulating: self._simulateRoute ? .always : .onPoorGPS)
+        
+        navigationService.delegate = self
+        
+        var dayStyle = CustomDayStyle()
+        if(_mapStyleUrlDay != nil){
+            dayStyle = CustomDayStyle(url: _mapStyleUrlDay)
+        }
+        let nightStyle = CustomNightStyle()
+        if(_mapStyleUrlNight != nil){
+            nightStyle.mapStyleURL = URL(string: _mapStyleUrlNight!)!
+        }
+        
+        let navigationOptions = NavigationOptions(styles: [dayStyle, nightStyle], navigationService: navigationService)
+        
+        if(self._navigationViewController == nil)
+        {
+            self._navigationViewController = NavigationViewController(for: response, routeIndex: 0, routeOptions: routeOptions!, navigationOptions: navigationOptions)
+            self._navigationViewController!.modalPresentationStyle = .fullScreen
+            self._navigationViewController!.delegate = self
+            self._navigationViewController!.navigationMapView!.localizeLabels()
+        }
+        let flutterViewController = UIApplication.shared.delegate?.window??.rootViewController as! FlutterViewController
+        flutterViewController.present(self._navigationViewController!, animated: true, completion: nil)
     }
     
     func constraintsWithPaddingBetween(holderView: UIView, topView: UIView, padding: CGFloat) {
