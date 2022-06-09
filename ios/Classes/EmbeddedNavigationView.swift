@@ -92,6 +92,12 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
         }
     }
+    
+    var currentRoute: Route? {
+        didSet {
+            navigationMapView?.showWaypoints(on: currentRoute!)
+        }
+    }
 
     public func view() -> UIView
     {
@@ -190,6 +196,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         _durationRemaining = 0
         
         routeResponse = nil
+        _wayPoints.removeAll()
         sendEvent(eventType: MapBoxEventType.navigation_cancelled)
         result(true)
     }
@@ -280,7 +287,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         _ = Directions.shared.calculate(routeOptions) { [weak self] (session, result) in
             switch result {
             case .failure(let error):
-                print(error.localizedDescription)
+                print(error.localizedDescription) // TODO -- throw this erro back to flutter
                 flutterResult(false)
                 self?.sendEvent(eventType: MapBoxEventType.route_build_failed)
                 return
@@ -291,6 +298,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 
                 strongSelf._distanceRemaining = response.routes!.first?.distance
                 strongSelf._durationRemaining = response.routes!.first?.expectedTravelTime
+                strongSelf.currentRoute = response.routes!.first
                 
                 strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
                 flutterResult(true)
@@ -461,6 +469,7 @@ extension FlutterMapboxNavigationView : NavigationMapViewDelegate {
 
     public func navigationMapView(_ mapView: NavigationMapView, didSelect route: Route) {
         self.selectedRouteIndex = self.routeResponse!.routes?.firstIndex(of: route) ?? 0
+        self.currentRoute = route
     }
 
     public func mapViewDidFinishLoadingMap(_ mapView: NavigationMapView) {
