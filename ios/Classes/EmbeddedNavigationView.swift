@@ -17,7 +17,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     var navigationMapView: NavigationMapView!
     var arguments: NSDictionary?
 
-    var routeResponse: RouteResponse?
     var selectedRouteIndex = 0
     var routeOptions: NavigationRouteOptions?
     var navigationService: NavigationService!
@@ -69,6 +68,10 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             {
                 result(strongSelf._durationRemaining)
             }
+            else if(call.method == "getRouteBuildResponse")
+            {
+                result(strongSelf._routeBuildResponse)
+            }
             else if(call.method == "finishNavigation")
             {
                 strongSelf.endNavigation(result: result)
@@ -93,10 +96,38 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         }
     }
     
-    var currentRoute: Route? {
+    var currentRouteIndex = 0 {
         didSet {
-            navigationMapView?.showWaypoints(on: currentRoute!)
+            showCurrentRoute()
         }
+    }
+    var currentRoute: Route? {
+        return routes?[currentRouteIndex]
+    }
+    
+    var routes: [Route]? {
+        return routeResponse?.routes
+    }
+    
+    var routeResponse: RouteResponse? {
+        didSet {
+            guard currentRoute != nil else {
+                navigationMapView.removeRoutes()
+            return
+        }
+            currentRouteIndex = 0
+        }
+    }
+    
+    func showCurrentRoute() {
+        guard let currentRoute = currentRoute else { return }
+         
+        var routes = [currentRoute]
+        routes.append(contentsOf: self.routes!.filter {
+            $0 != currentRoute
+        })
+        navigationMapView.show(routes)
+        navigationMapView.showWaypoints(on: currentRoute)
     }
 
     public func view() -> UIView
@@ -288,9 +319,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             switch result {
             case .failure(let error):
                 print(error.localizedDescription) // TODO -- throw this erro back to flutter
-                flutterResult(false)
+                self?._routeBuildResponse = error.localizedDescription
                 self?.sendEvent(eventType: MapBoxEventType.route_build_failed)
-                return
+                flutterResult(false)
             case .success(let response):
                 guard let strongSelf = self else { return }
                 strongSelf.routeResponse = response
@@ -298,7 +329,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 
                 strongSelf._distanceRemaining = response.routes!.first?.distance
                 strongSelf._durationRemaining = response.routes!.first?.expectedTravelTime
-                strongSelf.currentRoute = response.routes!.first
+                
+                
                 
                 strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
                 flutterResult(true)
@@ -468,8 +500,11 @@ extension FlutterMapboxNavigationView : NavigationMapViewDelegate {
     }
 
     public func navigationMapView(_ mapView: NavigationMapView, didSelect route: Route) {
-        self.selectedRouteIndex = self.routeResponse!.routes?.firstIndex(of: route) ?? 0
-        self.currentRoute = route
+        self.currentRouteIndex = self.routeResponse!.routes?.firstIndex(of: route) ?? 0
+    }
+    
+    public func navigationMapView(_ mapView: NavigationMapView, didTap route: Route) {
+        self.currentRouteIndex = self.routeResponse!.routes?.firstIndex(of: route) ?? 0
     }
 
     public func mapViewDidFinishLoadingMap(_ mapView: NavigationMapView) {

@@ -148,9 +148,8 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                             _controller!.updateCameraPosition(
                                 latitude: 51.729899, longitude: 0.183354);
                           }),
-                      SizedBox(
-                        width: 10,
-                      ),
+                      Row(
+                        children: [
                       ElevatedButton(
                         child: Text("Start "),
                         onPressed: _routeBuilt && !_isNavigating
@@ -159,9 +158,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                               }
                             : null,
                       ),
-                      SizedBox(
-                        width: 10,
-                      ),
+
                       ElevatedButton(
                         child: Text("Cancel "),
                         onPressed: _isNavigating
@@ -170,6 +167,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                               }
                             : null,
                       )
+                    ]),
                     ],
                   ),
                   //   Center(
