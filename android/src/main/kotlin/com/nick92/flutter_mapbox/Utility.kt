@@ -8,6 +8,7 @@ import android.content.res.Resources
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -84,16 +85,18 @@ import java.util.*
 open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, accessToken: String):  MethodChannel.MethodCallHandler, EventChannel.StreamHandler,
     Application.ActivityLifecycleCallbacks {
 
+    var TAG = "FLUTTERMAPBOX"
+
     open fun initFlutterChannelHandlers() {
         methodChannel?.setMethodCallHandler(this)
         eventChannel?.setStreamHandler(this)
     }
 
-    open fun initNavigation() {
-        mapboxMap = binding.mapView.getMapboxMap()
+    open fun initNavigation(mapView: MapView) {
+        mapboxMap = mapView.getMapboxMap()
 
         // initialize the location puck
-        binding.mapView.location.apply {
+        mapView.location.apply {
             this.locationPuck = LocationPuck2D(
                 bearingImage = ContextCompat.getDrawable(
                     context,
@@ -126,12 +129,12 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
         viewportDataSource = MapboxNavigationViewportDataSource(mapboxMap)
         navigationCamera = NavigationCamera(
             mapboxMap,
-            binding.mapView.camera,
+            mapView.camera,
             viewportDataSource
         )
         // set the animations lifecycle listener to ensure the NavigationCamera stops
         // automatically following the user location when the map is interacted with
-        binding.mapView.camera.addCameraAnimationsLifecycleListener(
+        mapView.camera.addCameraAnimationsLifecycleListener(
             NavigationBasicGesturesHandler(navigationCamera)
         )
         navigationCamera.registerNavigationCameraStateChangeObserver { navigationCameraState ->
@@ -144,7 +147,7 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
                 NavigationCameraState.IDLE -> binding.recenter.visibility = View.INVISIBLE
             }
         }
-        // set the padding values depending on screen orientation and visible view layout
+//         set the padding values depending on screen orientation and visible view layout
         if (activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             viewportDataSource.overviewPadding = landscapeOverviewPadding
         } else {
@@ -237,7 +240,6 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
 
         // initialize navigation trip observers
         registerObservers()
-
         mapboxNavigation.startTripSession()
     }
 
@@ -275,7 +277,6 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
     }
 
     private fun buildRoute(methodCall: MethodCall, result: MethodChannel.Result) {
-
         isNavigationCanceled = false
         isNavigationInProgress = false
 
@@ -335,7 +336,7 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
                     // Draw the route on the map
                     mapboxNavigation.setNavigationRoutes(routes)
                     // move the camera to overview when new route is available
-//                    navigationCamera.requestNavigationCameraToOverview()
+                    navigationCamera.requestNavigationCameraToOverview()
                     isBuildingRoute = false
                     //Start Navigation again from new Point, if it was already in Progress
                     if (isNavigationInProgress) {
@@ -484,18 +485,18 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
 
     private fun updateCamera(location: LatLng) {
         val mapAnimationOptions = MapAnimationOptions.Builder().duration(1500L).build()
-        binding.mapView.camera.easeTo(
-            CameraOptions.Builder()
-                // Centers the camera to the lng/lat specified.
-                .center(Point.fromLngLat(location.longitude, location.latitude))
-                // specifies the zoom value. Increase or decrease to zoom in or zoom out
-                .zoom(15.0)
-                // specify frame of reference from the center.
-                .padding(EdgeInsets(500.0, 0.0, 0.0, 0.0))
-                // specify frame of reference from the center.
-                .build(),
-            mapAnimationOptions
-        )
+//        binding.mapView.camera.easeTo(
+//            CameraOptions.Builder()
+//                // Centers the camera to the lng/lat specified.
+//                .center(Point.fromLngLat(location.longitude, location.latitude))
+//                // specifies the zoom value. Increase or decrease to zoom in or zoom out
+//                .zoom(15.0)
+//                // specify frame of reference from the center.
+//                .padding(EdgeInsets(500.0, 0.0, 0.0, 0.0))
+//                // specify frame of reference from the center.
+//                .build(),
+//            mapAnimationOptions
+//        )
     }
 
     private fun setOptions(arguments: Map<*, *>)

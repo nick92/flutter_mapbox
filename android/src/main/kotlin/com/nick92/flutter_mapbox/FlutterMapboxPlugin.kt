@@ -5,9 +5,9 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.annotation.NonNull;
-import com.nick92.flutter_mapbox.activity.NavigationLauncher
-import com.nick92.flutter_mapbox.factory.EmbeddedNavigationViewFactory
+import android.util.Log
+import androidx.annotation.NonNull
+import com.nick92.flutter_mapbox.views.EmbeddedViewFactory
 
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.DirectionsRoute
@@ -23,10 +23,11 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.platform.PlatformViewRegistry
+import timber.log.Timber
 import java.util.*
 
 /** FlutterMapboxNavigationPlugin */
-public class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler, ActivityAware {
+class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler, ActivityAware {
 
   private lateinit var channel : MethodChannel
   private lateinit var progressEventChannel: EventChannel
@@ -34,6 +35,7 @@ public class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel
   private lateinit var currentContext: Context
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+    Log.e("LOGGER", "onAttachedToEngine")
     val messenger = flutterPluginBinding.binaryMessenger
     channel = MethodChannel(messenger, "flutter_mapbox")
     channel.setMethodCallHandler(this)
@@ -91,7 +93,7 @@ public class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel
         checkPermissionAndBeginNavigation(call, result)
       }
       "finishNavigation" -> {
-        NavigationLauncher.stopNavigation(currentActivity)
+        //NavigationLauncher.stopNavigation(currentActivity)
       }
       "enableOfflineRouting" -> {
         downloadRegionForOfflineRouting(call, result)
@@ -184,7 +186,7 @@ public class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel
 
   private fun beginNavigation(wayPoints: List<Point>)
   {
-      NavigationLauncher.startNavigation(currentActivity, wayPoints);
+      //NavigationLauncher.startNavigation(currentActivity, wayPoints);
   }
 
 
@@ -216,13 +218,16 @@ public class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-
+    Timber.tag("LOGGER").e("onAttachedToActivity")
     currentActivity = binding.activity
     currentContext = binding.activity.applicationContext
 
-    if(platformViewRegistry != null && binaryMessenger != null && currentActivity != null)
-    {
-      platformViewRegistry?.registerViewFactory(view_name, EmbeddedNavigationViewFactory(binaryMessenger!!, currentActivity!!))
+    if (platformViewRegistry != null && binaryMessenger != null && currentActivity != null) {
+      var sicc = platformViewRegistry?.registerViewFactory(
+        view_name,
+        EmbeddedViewFactory(binaryMessenger!!, currentActivity!!)
+      )
+      Timber.tag("LOGGER").e(sicc.toString())
     }
 
   }
@@ -254,10 +259,7 @@ public class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel
         // All permissions are granted. Do the work accordingly.
       }
     }
-    //super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
+//    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
   }
 
 }
-
-private const val MAPBOX_ACCESS_TOKEN_PLACEHOLDER = "YOUR_MAPBOX_ACCESS_TOKEN_GOES_HERE"

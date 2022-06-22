@@ -64,7 +64,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
     // setState to update our non-existent appearance.
     if (!mounted) return;
 
-    _directions = MapBoxNavigation(onRouteEvent: _onEmbeddedRouteEvent);
+    // _directions = MapBoxNavigation(onRouteEvent: _onEmbeddedRouteEvent);
     _options = MapBoxOptions(
         //initialLatitude: 36.1175275,
         //initialLongitude: -115.1839524,
@@ -83,17 +83,17 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
         longPressDestinationEnabled: true,
         language: "en");
 
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      platformVersion = await _directions.platformVersion;
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
+    // String platformVersion;
+    // // Platform messages may fail, so we use a try/catch PlatformException.
+    // try {
+    //   platformVersion = await _controller!.platformVersion;
+    // } on PlatformException {
+    //   platformVersion = 'Failed to get platform version.';
+    // }
+    //
+    // setState(() {
+    //   _platformVersion = platformVersion;
+    // });
   }
 
   @override
