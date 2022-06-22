@@ -49,6 +49,11 @@ class MapBoxNavigation {
       .invokeMethod<double?>('getDurationRemaining')
       .then<double?>((dynamic result) => result);
 
+  //Response message from route build action
+  Future<String> get routeBuildResponse => _methodChannel
+      .invokeMethod('getRouteBuildResponse')
+      .then<String>((dynamic result) => result);
+
   ///Show the Navigation View and Begins Direction Routing
   ///
   /// [wayPoints] must not be null and have at least 2 items. A collection of [WayPoint](longitude, latitude and name). Must be at least 2 or at most 25. Cannot use drivingWithTraffic mode if more than 3-waypoints.
