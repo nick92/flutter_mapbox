@@ -82,10 +82,8 @@ import java.lang.Exception
 import java.util.*
 
 
-open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, accessToken: String):  MethodChannel.MethodCallHandler, EventChannel.StreamHandler,
+open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivityBinding, accessToken: String):  MethodChannel.MethodCallHandler, EventChannel.StreamHandler,
     Application.ActivityLifecycleCallbacks {
-
-    var TAG = "FLUTTERMAPBOX"
 
     open fun initFlutterChannelHandlers() {
         methodChannel?.setMethodCallHandler(this)
@@ -240,7 +238,7 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
 
         // initialize navigation trip observers
         registerObservers()
-        mapboxNavigation.startTripSession()
+        //mapboxNavigation.startTripSession()
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
@@ -318,6 +316,8 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
                 .language(navigationLanguage)
                 .alternatives(alternatives)
                 .profile(navigationMode)
+                .maxHeight(maxHeight)
+                .maxWidth(maxWidth)
                 .continueStraight(!allowsUTurnAtWayPoints)
                 .voiceUnits(navigationVoiceUnits)
                 .annotations(DirectionsCriteria.ANNOTATION_DISTANCE)
@@ -332,6 +332,9 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
                     }
 
                     currentRoute = routes[0]
+                    durationRemaining = currentRoute!!.directionsRoute.duration()
+                    distanceRemaining = currentRoute!!.directionsRoute.distance()
+
                     PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT)
                     // Draw the route on the map
                     mapboxNavigation.setNavigationRoutes(routes)
@@ -537,6 +540,10 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
         initialLatitude = arguments["initialLatitude"] as? Double
         initialLongitude = arguments["initialLongitude"] as? Double
 
+        maxHeight = arguments["maxHeight"] as? Double
+        maxWeight = arguments["maxWeight"] as? Double
+        maxWidth = arguments["maxWidth"] as? Double
+
         val zm = arguments["zoom"] as? Double
         if(zm != null)
             zoom = zm
@@ -631,7 +638,7 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
     var zoom = 15.0
     var bearing = 0.0
     var tilt = 0.0
-    var distanceRemaining: Float? = null
+    var distanceRemaining: Double? = null
     var durationRemaining: Double? = null
 
     var alternatives = true
@@ -643,6 +650,9 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
     var longPressDestinationEnabled = true
     var animateBuildRoute = true
     var isOptimized = false
+    var maxHeight: Double? = null
+    var maxWeight: Double? = null
+    var maxWidth: Double? = null
 
     var originPoint: Point? = null
     var destinationPoint: Point? = null
@@ -919,7 +929,7 @@ open class TurnByTurn(ctx: Context, act: Activity, bind: MapActivityBinding, acc
         if (!isNavigationCanceled) {
             try {
 
-                distanceRemaining = routeProgress.distanceRemaining
+                distanceRemaining = routeProgress.distanceRemaining.toDouble()
                 durationRemaining = routeProgress.durationRemaining
 
                 val progressEvent = MapBoxRouteProgressEvent(routeProgress)

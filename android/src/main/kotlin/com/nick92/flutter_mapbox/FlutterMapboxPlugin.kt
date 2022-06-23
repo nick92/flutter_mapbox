@@ -35,7 +35,6 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
   private lateinit var currentContext: Context
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    Log.e("LOGGER", "onAttachedToEngine")
     val messenger = flutterPluginBinding.binaryMessenger
     channel = MethodChannel(messenger, "flutter_mapbox")
     channel.setMethodCallHandler(this)
@@ -218,18 +217,15 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-    Timber.tag("LOGGER").e("onAttachedToActivity")
     currentActivity = binding.activity
     currentContext = binding.activity.applicationContext
 
     if (platformViewRegistry != null && binaryMessenger != null && currentActivity != null) {
-      var sicc = platformViewRegistry?.registerViewFactory(
+      platformViewRegistry?.registerViewFactory(
         view_name,
         EmbeddedViewFactory(binaryMessenger!!, currentActivity!!)
       )
-      Timber.tag("LOGGER").e(sicc.toString())
     }
-
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
