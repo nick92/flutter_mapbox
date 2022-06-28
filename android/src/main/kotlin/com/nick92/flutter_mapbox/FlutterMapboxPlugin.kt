@@ -12,6 +12,7 @@ import com.nick92.flutter_mapbox.views.EmbeddedViewFactory
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.geojson.Point
+import com.nick92.flutter_mapbox.views.FullscreenNavigationLauncher
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -80,7 +81,7 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
     when(call.method)
     {
       "getPlatformVersion" -> {
-        result.success("Android ${android.os.Build.VERSION.RELEASE}")
+        result.success("Android ${Build.VERSION.RELEASE}")
       }
       "getDistanceRemaining" -> {
         result.success(distanceRemaining);
@@ -93,6 +94,8 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
       }
       "finishNavigation" -> {
         //NavigationLauncher.stopNavigation(currentActivity)
+        FullscreenNavigationLauncher.KEY_STOP_NAVIGATION
+        FullscreenNavigationLauncher.stopNavigation(currentActivity)
       }
       "enableOfflineRouting" -> {
         downloadRegionForOfflineRouting(call, result)

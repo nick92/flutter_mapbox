@@ -8,7 +8,6 @@ import android.content.res.Resources
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -16,18 +15,21 @@ import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
 import com.mapbox.api.directions.v5.DirectionsCriteria
-import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.api.directions.v5.models.RouteOptions
 
 import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
 import com.mapbox.mapboxsdk.geometry.LatLng
+import com.mapbox.mapboxsdk.style.expressions.Expression.*
 import com.mapbox.maps.*
+import com.mapbox.maps.extension.style.expressions.dsl.generated.interpolate
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.MapAnimationOptions
 import com.mapbox.maps.plugin.animation.camera
 import com.mapbox.maps.plugin.gestures.gestures
+import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
 import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.maps.plugin.locationcomponent.location2
 import com.mapbox.navigation.base.TimeFormat
 import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
@@ -79,6 +81,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.lang.Exception
+import java.lang.ref.WeakReference
 import java.util.*
 
 
@@ -90,7 +93,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         eventChannel?.setStreamHandler(this)
     }
 
-    open fun initNavigation(mapView: MapView) {
+    open fun initNavigation(mv: MapView) {
+        mapView = mv
         mapboxMap = mapView.getMapboxMap()
 
         // initialize the location puck
@@ -98,12 +102,13 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             this.locationPuck = LocationPuck2D(
                 bearingImage = ContextCompat.getDrawable(
                     context,
-                    R.drawable.mapbox_navigation_puck_icon
-                )
+                    R.drawable.mapbox_user_icon
+                ),
             )
             setLocationProvider(navigationLocationProvider)
             enabled = true
         }
+
 
         // initialize Mapbox Navigation
         mapboxNavigation = if (MapboxNavigationProvider.isCreated()) {
@@ -145,7 +150,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 NavigationCameraState.IDLE -> binding.recenter.visibility = View.INVISIBLE
             }
         }
-//         set the padding values depending on screen orientation and visible view layout
+        // set the padding values depending on screen orientation and visible view layout
         if (activity.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             viewportDataSource.overviewPadding = landscapeOverviewPadding
         } else {
@@ -209,8 +214,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         val routeArrowOptions = RouteArrowOptions.Builder(activity).build()
         routeArrowView = MapboxRouteArrowView(routeArrowOptions)
 
-        moveCameraToOriginOfRoute()
-
         // load map style
         mapboxMap.loadStyleUri(
             Style.TRAFFIC_DAY
@@ -234,11 +237,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         }
 
         // set initial sounds button state
-        binding.soundButton.unmute()
+        binding.soundButton.mute()
 
         // initialize navigation trip observers
         registerObservers()
-        //mapboxNavigation.startTripSession()
+
+        mapboxNavigation.startTripSession(withForegroundService = false)
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
@@ -306,6 +310,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         }
 
         PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILDING)
+        mapboxNavigation.stopTripSession()
 
         mapboxNavigation.requestRoutes(
             RouteOptions.builder()
@@ -318,6 +323,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .profile(navigationMode)
                 .maxHeight(maxHeight)
                 .maxWidth(maxWidth)
+                .maxWeight(maxWeight)
                 .continueStraight(!allowsUTurnAtWayPoints)
                 .voiceUnits(navigationVoiceUnits)
                 .annotations(DirectionsCriteria.ANNOTATION_DISTANCE)
@@ -342,10 +348,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                     navigationCamera.requestNavigationCameraToOverview()
                     isBuildingRoute = false
                     //Start Navigation again from new Point, if it was already in Progress
-                    if (isNavigationInProgress) {
-                        startNavigation()
-                    }
-
+                    //if (isNavigationInProgress) {
+                    //    startNavigation()
+                    //}
                 }
                 override fun onFailure(reasons: List<RouterFailure>,
                                        routeOptions: RouteOptions
@@ -400,6 +405,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         binding.tripProgressCard.visibility = View.INVISIBLE
 
         PluginUtilities.sendEvent(MapBoxEvents.NAVIGATION_CANCELLED)
+
     }
 
     private fun startNavigation(methodCall: MethodCall, result: MethodChannel.Result) {
@@ -418,7 +424,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     private fun finishNavigation(methodCall: MethodCall, result: MethodChannel.Result) {
-
         finishNavigation()
 
         if (currentRoute != null) {
@@ -488,18 +493,18 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
     private fun updateCamera(location: LatLng) {
         val mapAnimationOptions = MapAnimationOptions.Builder().duration(1500L).build()
-//        binding.mapView.camera.easeTo(
-//            CameraOptions.Builder()
-//                // Centers the camera to the lng/lat specified.
-//                .center(Point.fromLngLat(location.longitude, location.latitude))
-//                // specifies the zoom value. Increase or decrease to zoom in or zoom out
-//                .zoom(15.0)
-//                // specify frame of reference from the center.
-//                .padding(EdgeInsets(500.0, 0.0, 0.0, 0.0))
-//                // specify frame of reference from the center.
-//                .build(),
-//            mapAnimationOptions
-//        )
+        mapView.camera.easeTo(
+            CameraOptions.Builder()
+                // Centers the camera to the lng/lat specified.
+                .center(Point.fromLngLat(location.longitude, location.latitude))
+                // specifies the zoom value. Increase or decrease to zoom in or zoom out
+                .zoom(15.0)
+                // specify frame of reference from the center.
+                .padding(EdgeInsets(500.0, 0.0, 0.0, 0.0))
+                // specify frame of reference from the center.
+                .build(),
+            mapAnimationOptions
+        )
     }
 
     private fun setOptions(arguments: Map<*, *>)
@@ -685,6 +690,13 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
      * Bindings to the example layout.
      */
     open val binding: MapActivityBinding = bind
+
+
+    /**
+     * MapView entry point obtained from the embedded view.
+     * You need to get a new reference to this object whenever the [MapView] is recreated.
+     */
+    private lateinit var mapView: MapView
 
     /**
      * Mapbox Maps entry point obtained from the [MapView].

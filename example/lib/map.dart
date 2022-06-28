@@ -11,36 +11,12 @@ class SampleNavigationApp extends StatefulWidget {
 class _SampleNavigationAppState extends State<SampleNavigationApp> {
   String _platformVersion = 'Unknown';
   String? _instruction = "";
-  final _origin = WayPoint(
-      name: "Way Point 1",
-      latitude: 38.9111117447887,
-      longitude: -77.04012393951416);
-  final _stop1 = WayPoint(
-      name: "Way Point 2",
-      latitude: 38.91113678979344,
-      longitude: -77.03847169876099);
-  final _stop2 = WayPoint(
-      name: "Way Point 3",
-      latitude: 38.91040213277608,
-      longitude: -77.03848242759705);
-  final _stop3 = WayPoint(
-      name: "Way Point 4",
-      latitude: 38.909650771013034,
-      longitude: -77.03850388526917);
-  final _destination = WayPoint(
-      name: "Way Point 5",
-      latitude: 38.90894949285854,
-      longitude: -77.03651905059814);
 
-  final _home = WayPoint(
-      name: "Home",
-      latitude: 37.77440680146262,
-      longitude: -122.43539772352648);
+  final _home =
+      WayPoint(name: "Home", latitude: 53.211025, longitude: -2.894550);
 
-  final _store = WayPoint(
-      name: "Store",
-      latitude: 37.76556957793795,
-      longitude: -122.42409811526268);
+  final _store =
+      WayPoint(name: "Padeswood", latitude: 53.156263, longitude: -3.060583);
 
   late MapBoxNavigation _directions;
   late MapBoxOptions _options;
@@ -148,26 +124,24 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                             _controller!.updateCameraPosition(
                                 latitude: 51.729899, longitude: 0.183354);
                           }),
-                      Row(
-                        children: [
-                      ElevatedButton(
-                        child: Text("Start "),
-                        onPressed: _routeBuilt && !_isNavigating
-                            ? () {
-                                _controller!.startNavigation();
-                              }
-                            : null,
-                      ),
-
-                      ElevatedButton(
-                        child: Text("Cancel "),
-                        onPressed: _isNavigating
-                            ? () {
-                                _controller!.finishNavigation();
-                              }
-                            : null,
-                      )
-                    ]),
+                      Row(children: [
+                        ElevatedButton(
+                          child: Text("Start "),
+                          onPressed: _routeBuilt && !_isNavigating
+                              ? () {
+                                  _controller!.startNavigation();
+                                }
+                              : null,
+                        ),
+                        ElevatedButton(
+                          child: Text("Cancel "),
+                          onPressed: _isNavigating
+                              ? () {
+                                  _controller!.finishNavigation();
+                                }
+                              : null,
+                        )
+                      ]),
                     ],
                   ),
                   //   Center(

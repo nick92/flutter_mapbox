@@ -1,3 +1,17 @@
+## 0.1.5
+
+* android - start navigation session on init
+
+
+## 0.1.4
+
+* add duration and disatance android route builder response
+* add vehicle height / weight / width arguments to android route builder
+
+## 0.1.3
+
+* fix for android embeded mapbox view
+
 ## 0.1.0
 
 * finalise android dev work
