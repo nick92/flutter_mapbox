@@ -6,17 +6,21 @@ import com.mapbox.geojson.Point
 import java.io.Serializable
 
 open class FullscreenNavigationLauncher {
-    open val KEY_STOP_NAVIGATION = "com.my.mapbox.broadcast.STOP_NAVIGATION"
+    companion object {
+        val KEY_STOP_NAVIGATION = "com.my.mapbox.broadcast.STOP_NAVIGATION"
 
-    open fun startNavigation(activity: Activity, wayPoints: List<Point?>?) {
-        val navigationIntent = Intent(activity, FullscreenNavActivity::class.java)
-        navigationIntent.putExtra("waypoints", wayPoints as Serializable?)
-        activity.startActivity(navigationIntent)
-    }
+        @JvmStatic
+        fun startNavigation(activity: Activity, wayPoints: List<Point?>?) {
+            val navigationIntent = Intent(activity, FullscreenNavActivity::class.java)
+            navigationIntent.putExtra("waypoints", wayPoints as Serializable?)
+            activity.startActivity(navigationIntent)
+        }
 
-    open fun stopNavigation(activity: Activity) {
-        val stopIntent = Intent()
-        stopIntent.action = KEY_STOP_NAVIGATION
-        activity.sendBroadcast(stopIntent)
+        @JvmStatic
+        fun stopNavigation(activity: Activity) {
+            val stopIntent = Intent()
+            stopIntent.action = KEY_STOP_NAVIGATION
+            activity.sendBroadcast(stopIntent)
+        }
     }
 }

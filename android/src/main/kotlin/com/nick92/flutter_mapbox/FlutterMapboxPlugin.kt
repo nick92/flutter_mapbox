@@ -27,7 +27,7 @@ import io.flutter.plugin.platform.PlatformViewRegistry
 import timber.log.Timber
 import java.util.*
 
-/** FlutterMapboxNavigationPlugin */
+/** FlutterMapboxPlugin */
 class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler, ActivityAware {
 
   private lateinit var channel : MethodChannel
@@ -93,9 +93,7 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
         checkPermissionAndBeginNavigation(call, result)
       }
       "finishNavigation" -> {
-        //NavigationLauncher.stopNavigation(currentActivity)
-        FullscreenNavigationLauncher.KEY_STOP_NAVIGATION
-        FullscreenNavigationLauncher.stopNavigation(currentActivity)
+        currentActivity?.let { FullscreenNavigationLauncher.stopNavigation(it) }
       }
       "enableOfflineRouting" -> {
         downloadRegionForOfflineRouting(call, result)
@@ -186,9 +184,8 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
       beginNavigation(wayPoints)
   }
 
-  private fun beginNavigation(wayPoints: List<Point>)
-  {
-      //NavigationLauncher.startNavigation(currentActivity, wayPoints);
+  private fun beginNavigation(wayPoints: List<Point>) {
+    currentActivity?.let { FullscreenNavigationLauncher.startNavigation(it, wayPoints) }
   }
 
 
@@ -214,9 +211,7 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
   }
 
   override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-
     currentActivity = binding.activity
-
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {

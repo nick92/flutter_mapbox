@@ -76,6 +76,7 @@ import com.mapbox.navigation.ui.voice.model.SpeechError
 import com.mapbox.navigation.ui.voice.model.SpeechValue
 import com.mapbox.navigation.ui.voice.model.SpeechVolume
 import com.nick92.flutter_mapbox.databinding.MapActivityBinding
+import com.nick92.flutter_mapbox.views.FullscreenNavigationLauncher
 
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -265,6 +266,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             "startNavigation" -> {
                 startNavigation(methodCall, result)
             }
+            "startFullScreenNavigation" -> {
+                FullscreenNavigationLauncher.startNavigation(this.activity, wayPoints)
+            }
+            "reCenter" -> {
+                navigationCamera.requestNavigationCameraToFollowing()
+            }
             "finishNavigation" -> {
                 finishNavigation(methodCall, result)
             }
@@ -348,9 +355,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                     navigationCamera.requestNavigationCameraToOverview()
                     isBuildingRoute = false
                     //Start Navigation again from new Point, if it was already in Progress
-                    //if (isNavigationInProgress) {
-                    //    startNavigation()
-                    //}
+                    if (isNavigationInProgress) {
+                        startNavigation()
+                    }
                 }
                 override fun onFailure(reasons: List<RouterFailure>,
                                        routeOptions: RouteOptions
@@ -409,7 +416,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     private fun startNavigation(methodCall: MethodCall, result: MethodChannel.Result) {
-
         val arguments = methodCall.arguments as? Map<*, *>
         if(arguments != null)
             setOptions(arguments)
@@ -442,9 +448,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
             mapboxNavigation.startTripSession()
             // show UI elements
-            // binding.soundButton.visibility = View.VISIBLE
-            // binding.routeOverview.visibility = View.VISIBLE
-            // binding.tripProgressCard.visibility = View.VISIBLE
+             binding.soundButton.visibility = View.VISIBLE
+             binding.routeOverview.visibility = View.VISIBLE
+             binding.tripProgressCard.visibility = View.VISIBLE
 
             // move the camera to overview when new route is available
             navigationCamera.requestNavigationCameraToOverview()

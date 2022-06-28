@@ -16,10 +16,7 @@ import com.nick92.flutter_mapbox.utilities.PluginUtilities.Companion.sendEvent
 import com.mapbox.api.directions.v5.models.*
 import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
-import com.mapbox.maps.EdgeInsets
-import com.mapbox.maps.MapView
-import com.mapbox.maps.MapboxMap
-import com.mapbox.maps.Style
+import com.mapbox.maps.*
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.camera
 import com.mapbox.maps.plugin.gestures.gestures
@@ -80,6 +77,8 @@ class FullscreenNavActivity : AppCompatActivity() {
     private var canResetRoute: Boolean = false
     private var accessToken: String? = null
     val KEY_STOP_NAVIGATION = "com.my.mapbox.broadcast.STOP_NAVIGATION"
+    val options: MapInitOptions = MapInitOptions(this.applicationContext, textureView = true)
+    var mapView = MapView(this.applicationContext, options)
 
     @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -88,7 +87,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         binding = MapActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
         accessToken = PluginUtilities.getResourceFromContext(this.applicationContext, "mapbox_access_token")
-        mapboxMap = binding.mapView.getMapboxMap()
+        mapboxMap = mapView.getMapboxMap()
 
         receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -101,10 +100,10 @@ class FullscreenNavActivity : AppCompatActivity() {
         if(p != null) points = p
 
         // initialize the location puck
-        binding.mapView.location.apply {
+        mapView.location.apply {
             this.locationPuck = LocationPuck2D(
                 bearingImage = ContextCompat.getDrawable(
-                    this@NavigationActivity,
+                    this@FullscreenNavActivity,
                     R.drawable.mapbox_navigation_puck_icon
                 )
             )
@@ -116,7 +115,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         mapboxNavigation = if (MapboxNavigationProvider.isCreated()) {
             MapboxNavigationProvider.retrieve()
         } else {
-            if (FlutterMapboxNavigationPlugin.simulateRoute){
+            if (FlutterMapboxPlugin.simulateRoute){
                 MapboxNavigationProvider.create(
                     NavigationOptions.Builder(this.applicationContext)
                         .accessToken(accessToken)
@@ -138,12 +137,12 @@ class FullscreenNavActivity : AppCompatActivity() {
         viewportDataSource = MapboxNavigationViewportDataSource(mapboxMap)
         navigationCamera = NavigationCamera(
             mapboxMap,
-            binding.mapView.camera,
+            mapView.camera,
             viewportDataSource
         )
         // set the animations lifecycle listener to ensure the NavigationCamera stops
         // automatically following the user location when the map is interacted with
-        binding.mapView.camera.addCameraAnimationsLifecycleListener(
+        mapView.camera.addCameraAnimationsLifecycleListener(
             NavigationBasicGesturesHandler(navigationCamera)
         )
         navigationCamera.registerNavigationCameraStateChangeObserver { navigationCameraState ->
@@ -198,12 +197,12 @@ class FullscreenNavActivity : AppCompatActivity() {
         speechApi = MapboxSpeechApi(
             this,
             accessToken!!,
-            Locale.US.language
+            Locale.UK.language
         )
         voiceInstructionsPlayer = MapboxVoiceInstructionsPlayer(
             this,
             accessToken!!,
-            Locale.US.language
+            Locale.UK.language
         )
 
         // initialize route line, the withRouteLineBelowLayerId is specified to place
@@ -220,16 +219,16 @@ class FullscreenNavActivity : AppCompatActivity() {
         val routeArrowOptions = RouteArrowOptions.Builder(this).build()
         routeArrowView = MapboxRouteArrowView(routeArrowOptions)
 
-        var styleUrl = FlutterMapboxNavigationPlugin.mapStyleUrlDay
+        var styleUrl = FlutterMapboxPlugin.mapStyleUrlDay
         if (styleUrl == null) styleUrl = Style.MAPBOX_STREETS
         // load map style
         mapboxMap.loadStyleUri(
             styleUrl
         ) {
-            if(FlutterMapboxNavigationPlugin.allowsClickToSetDestination)
+            if(FlutterMapboxPlugin.allowsClickToSetDestination)
             {
                 // add long click listener that search for a route to the clicked destination
-                binding.mapView.gestures.addOnMapLongClickListener { point ->
+                mapView.gestures.addOnMapLongClickListener { point ->
                     findRoute(point)
                     true
                 }
@@ -442,9 +441,9 @@ class FullscreenNavActivity : AppCompatActivity() {
         startSimulation(routes.first())
 
         // show UI elements
-        binding.soundButton.visibility = View.VISIBLE
-        binding.routeOverview.visibility = View.VISIBLE
-        binding.tripProgressCard.visibility = View.VISIBLE
+//        binding.soundButton.visibility = View.VISIBLE
+//        binding.routeOverview.visibility = View.VISIBLE
+//        binding.tripProgressCard.visibility = View.VISIBLE
 
         // move the camera to overview when new route is available
         navigationCamera.requestNavigationCameraToOverview()
@@ -503,7 +502,7 @@ class FullscreenNavActivity : AppCompatActivity() {
     /**
      * Bindings to the Navigation Activity.
      */
-    private lateinit var binding: NavigationActivityBinding// MapboxActivityTurnByTurnExperienceBinding
+    private lateinit var binding: MapActivityBinding// MapboxActivityTurnByTurnExperienceBinding
 
     /**
      * Mapbox Maps entry point obtained from the [MapView].
@@ -728,7 +727,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         maneuvers.fold(
             { error ->
                 Toast.makeText(
-                    this@NavigationActivity,
+                    this@FullscreenNavActivity,
                     error.errorMessage,
                     Toast.LENGTH_SHORT
                 ).show()
@@ -741,8 +740,8 @@ class FullscreenNavActivity : AppCompatActivity() {
 
         //Notify the client
         val progressEvent = MapBoxRouteProgressEvent(routeProgress)
-        FlutterMapboxNavigationPlugin.distanceRemaining = routeProgress.distanceRemaining
-        FlutterMapboxNavigationPlugin.durationRemaining = routeProgress.durationRemaining
+        FlutterMapboxPlugin.distanceRemaining = routeProgress.distanceRemaining
+        FlutterMapboxPlugin.durationRemaining = routeProgress.durationRemaining
         sendEvent(progressEvent)
 
         // update bottom trip progress summary
