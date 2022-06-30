@@ -20,6 +20,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler
     var _routes: [Route]?
     var _wayPoints = [Waypoint]()
     var _lastKnownLocation: CLLocation?
+    var _routeBuildResponse: String?
 
     var _options: NavigationRouteOptions?
     var _simulateRoute = false
