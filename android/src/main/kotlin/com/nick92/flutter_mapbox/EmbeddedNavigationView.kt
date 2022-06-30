@@ -269,9 +269,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             "startFullScreenNavigation" -> {
                 FullscreenNavigationLauncher.startNavigation(this.activity, wayPoints)
             }
-            "reCenter" -> {
-                navigationCamera.requestNavigationCameraToFollowing()
-            }
             "finishNavigation" -> {
                 finishNavigation(methodCall, result)
             }
@@ -296,6 +293,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         if (mapReady) {
             wayPoints.clear()
             val points = arguments?.get("wayPoints") as HashMap<*, *>
+            
             for (item in points)
             {
                 val point = item.value as HashMap<*, *>
@@ -303,6 +301,18 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 val longitude = point["Longitude"] as Double
                 wayPoints.add(Point.fromLngLat(longitude, latitude))
             }
+            
+            val height = arguments["maxHeight"] as String
+            val weight = arguments["maxWeight"] as String
+            val width = arguments["maxWidth"] as String
+
+            if(height.isNotEmpty())
+                maxHeight = height.toDouble()
+            if(weight.isNotEmpty())
+                maxWeight = weight.toDouble()
+            if(width.isNotEmpty())
+                maxWidth = width.toDouble()
+
             getRoute(context)
             result.success(true)
         } else {

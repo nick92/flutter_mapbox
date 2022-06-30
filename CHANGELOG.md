@@ -1,3 +1,12 @@
+## 0.1.7
+
+* allow vehicle dimentions to be passed in via build route aruguments 
+
+## 0.1.6
+
+* android - add embedded navigation view work 
+
+
 ## 0.1.5
 
 * android - start navigation session on init

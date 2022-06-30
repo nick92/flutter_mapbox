@@ -285,17 +285,33 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             mode = .walking
         }
 
+        var maxHeight = arguments?["maxHeight"] as? String
+        var maxWeight = arguments?["maxWeight"] as? String
+        var maxWidth = arguments?["maxWidth"] as? String
+
         var items = [URLQueryItem]();
         
-        if(_maxHeight != nil)
+        if(maxHeight != nil)
+        {
+            items.append(URLQueryItem(name: "max_height", value: maxHeight))
+        }
+        else 
         {
             items.append(URLQueryItem(name: "max_height", value: _maxHeight))
         }
-        if(_maxWeight != nil)
+        if(maxWeight != nil)
+        {
+            items.append(URLQueryItem(name: "max_weight", value: maxWeight))
+        }
+        else 
         {
             items.append(URLQueryItem(name: "max_weight", value: _maxWeight))
         }
-        if(_maxWidth != nil)
+        if(maxWidth != nil)
+        {
+            items.append(URLQueryItem(name: "max_width", value: maxWidth))
+        } 
+        else 
         {
             items.append(URLQueryItem(name: "max_width", value: _maxWidth))
         }

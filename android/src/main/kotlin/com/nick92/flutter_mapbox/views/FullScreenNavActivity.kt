@@ -25,6 +25,7 @@ import com.mapbox.navigation.base.TimeFormat
 import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
 import com.mapbox.navigation.base.options.NavigationOptions
+import com.mapbox.navigation.base.route.NavigationRoute
 import com.mapbox.navigation.base.route.RouterCallback
 import com.mapbox.navigation.base.route.RouterFailure
 import com.mapbox.navigation.base.route.RouterOrigin
@@ -76,9 +77,6 @@ class FullscreenNavActivity : AppCompatActivity() {
     private var points: MutableList<Point> = mutableListOf()
     private var canResetRoute: Boolean = false
     private var accessToken: String? = null
-    val KEY_STOP_NAVIGATION = "com.my.mapbox.broadcast.STOP_NAVIGATION"
-    val options: MapInitOptions = MapInitOptions(this.applicationContext, textureView = true)
-    var mapView = MapView(this.applicationContext, options)
 
     @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,20 +85,20 @@ class FullscreenNavActivity : AppCompatActivity() {
         binding = MapActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
         accessToken = PluginUtilities.getResourceFromContext(this.applicationContext, "mapbox_access_token")
-        mapboxMap = mapView.getMapboxMap()
+        mapboxMap = binding.mapView.getMapboxMap()
 
         receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 finish()
             }
         }
-        registerReceiver(receiver, IntentFilter(KEY_STOP_NAVIGATION))
+        registerReceiver(receiver, IntentFilter(FullscreenNavigationLauncher.KEY_STOP_NAVIGATION))
 
         val p = intent.getSerializableExtra("waypoints") as? MutableList<Point>
         if(p != null) points = p
 
         // initialize the location puck
-        mapView.location.apply {
+        binding.mapView.location.apply {
             this.locationPuck = LocationPuck2D(
                 bearingImage = ContextCompat.getDrawable(
                     this@FullscreenNavActivity,
@@ -137,12 +135,12 @@ class FullscreenNavActivity : AppCompatActivity() {
         viewportDataSource = MapboxNavigationViewportDataSource(mapboxMap)
         navigationCamera = NavigationCamera(
             mapboxMap,
-            mapView.camera,
+            binding.mapView.camera,
             viewportDataSource
         )
         // set the animations lifecycle listener to ensure the NavigationCamera stops
         // automatically following the user location when the map is interacted with
-        mapView.camera.addCameraAnimationsLifecycleListener(
+        binding.mapView.camera.addCameraAnimationsLifecycleListener(
             NavigationBasicGesturesHandler(navigationCamera)
         )
         navigationCamera.registerNavigationCameraStateChangeObserver { navigationCameraState ->
@@ -228,7 +226,7 @@ class FullscreenNavActivity : AppCompatActivity() {
             if(FlutterMapboxPlugin.allowsClickToSetDestination)
             {
                 // add long click listener that search for a route to the clicked destination
-                mapView.gestures.addOnMapLongClickListener { point ->
+                binding.mapView.gestures.addOnMapLongClickListener { point ->
                     findRoute(point)
                     true
                 }
@@ -258,7 +256,6 @@ class FullscreenNavActivity : AppCompatActivity() {
         // start the trip session to being receiving location updates in free drive
         // and later when a route is set also receiving route progress updates
         mapboxNavigation.startTripSession()
-
     }
 
     override fun onStart() {
@@ -284,7 +281,9 @@ class FullscreenNavActivity : AppCompatActivity() {
                 )
             )
             mapboxReplayer.playFirstLocation()
+
         }
+        navigationCamera.requestNavigationCameraToFollowing()
     }
 
     override fun onStop() {
@@ -441,12 +440,12 @@ class FullscreenNavActivity : AppCompatActivity() {
         startSimulation(routes.first())
 
         // show UI elements
-//        binding.soundButton.visibility = View.VISIBLE
-//        binding.routeOverview.visibility = View.VISIBLE
-//        binding.tripProgressCard.visibility = View.VISIBLE
+        binding.soundButton.visibility = View.VISIBLE
+        binding.routeOverview.visibility = View.VISIBLE
+        binding.tripProgressCard.visibility = View.VISIBLE
 
         // move the camera to overview when new route is available
-        navigationCamera.requestNavigationCameraToOverview()
+        navigationCamera.requestNavigationCameraToFollowing()
     }
 
     private fun clearRouteAndStopNavigation() {
@@ -461,6 +460,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         binding.maneuverView.visibility = View.INVISIBLE
         binding.routeOverview.visibility = View.INVISIBLE
         binding.tripProgressCard.visibility = View.INVISIBLE
+
     }
 
     private fun startSimulation(route: DirectionsRoute) {
@@ -771,6 +771,7 @@ class FullscreenNavActivity : AppCompatActivity() {
                 }
             }
 
+            navigationCamera.requestNavigationCameraToFollowing()
             // update the camera position to account for the new route
             viewportDataSource.onRouteChanged(routeUpdateResult.routes.first())
             viewportDataSource.evaluate()

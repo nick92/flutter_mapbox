@@ -44,6 +44,9 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
     _options = MapBoxOptions(
         //initialLatitude: 36.1175275,
         //initialLongitude: -115.1839524,
+        maxHeight: "4.5",
+        maxWeight: "44",
+        maxWidth: "2",
         zoom: 15.0,
         tilt: 0.0,
         bearing: 0.0,
@@ -121,15 +124,14 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                       ElevatedButton(
                           child: Text("Update Camera"),
                           onPressed: () {
-                            _controller!.updateCameraPosition(
-                                latitude: 51.729899, longitude: 0.183354);
+                            _controller!.reCenterCamera();
                           }),
                       Row(children: [
                         ElevatedButton(
                           child: Text("Start "),
                           onPressed: _routeBuilt && !_isNavigating
                               ? () {
-                                  _controller!.startNavigation();
+                                  _controller!.startFullScreenNavigation();
                                 }
                               : null,
                         ),
@@ -217,8 +219,8 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
   }
 
   Future<void> _onEmbeddedRouteEvent(e) async {
-    _distanceRemaining = await _directions.distanceRemaining;
-    _durationRemaining = await _directions.durationRemaining;
+    // _distanceRemaining = await _controller!.distanceRemaining;
+    // _durationRemaining = await _controller!.durationRemaining;
 
     switch (e.eventType) {
       case MapBoxEvent.progress_change:
