@@ -24,7 +24,6 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.platform.PlatformViewRegistry
-import timber.log.Timber
 import java.util.*
 
 /** FlutterMapboxPlugin */

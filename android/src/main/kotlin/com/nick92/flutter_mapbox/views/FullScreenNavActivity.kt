@@ -6,6 +6,8 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.location.Location
 import android.os.Bundle
+import android.util.Log
+import android.util.Log.VERBOSE
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -461,6 +463,8 @@ class FullscreenNavActivity : AppCompatActivity() {
         binding.routeOverview.visibility = View.INVISIBLE
         binding.tripProgressCard.visibility = View.INVISIBLE
 
+        // end the intent
+        finish()
     }
 
     private fun startSimulation(route: DirectionsRoute) {

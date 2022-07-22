@@ -38,7 +38,7 @@ class EmbeddedView(context: Context, activity: Activity, binding: MapActivityBin
     }
 
     override fun getView(): View {
-        val view: View = mapView
+        val view: View = mapView;
         return view;
     }
 

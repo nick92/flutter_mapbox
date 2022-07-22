@@ -1,3 +1,15 @@
+## 0.2.0
+
+* finish navigation intent on route clear
+* allow of alternative route selection on map click
+*  
+
+
+## 0.1.8
+
+* add android reCenter navigation camera method call 
+
+
 ## 0.1.7
 
 * allow vehicle dimentions to be passed in via build route aruguments 

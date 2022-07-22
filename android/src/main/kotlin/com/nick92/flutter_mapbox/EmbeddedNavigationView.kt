@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import androidx.core.content.ContextCompat
 import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
@@ -26,6 +27,7 @@ import com.mapbox.maps.extension.style.expressions.dsl.generated.interpolate
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.MapAnimationOptions
 import com.mapbox.maps.plugin.animation.camera
+import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
 import com.mapbox.maps.plugin.locationcomponent.location
@@ -35,6 +37,7 @@ import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
 import com.mapbox.navigation.base.options.NavigationOptions
 import com.mapbox.navigation.base.route.*
+import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.core.MapboxNavigation
 import com.mapbox.navigation.core.MapboxNavigationProvider
 import com.mapbox.navigation.core.directions.session.RoutesObserver
@@ -42,6 +45,8 @@ import com.mapbox.navigation.core.formatter.MapboxDistanceFormatter
 import com.mapbox.navigation.core.replay.MapboxReplayer
 import com.mapbox.navigation.core.replay.ReplayLocationEngine
 import com.mapbox.navigation.core.replay.route.ReplayProgressObserver
+import com.mapbox.navigation.core.routealternatives.NavigationRouteAlternativesObserver
+import com.mapbox.navigation.core.routealternatives.RouteAlternativesError
 import com.mapbox.navigation.core.trip.session.LocationMatcherResult
 import com.mapbox.navigation.core.trip.session.LocationObserver
 import com.mapbox.navigation.core.trip.session.RouteProgressObserver
@@ -189,6 +194,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .build()
         )
 
+
         // initialize voice instructions api and the voice instruction player
         speechApi = MapboxSpeechApi(
             activity,
@@ -206,7 +212,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         // the value of this option will depend on the style that you are using
         // and under which layer the route line should be placed on the map layers stack
         val mapboxRouteLineOptions = MapboxRouteLineOptions.Builder(activity)
-            .withRouteLineBelowLayerId("road-label")
+            .withRouteLineBelowLayerId("road-label-navigation")
+            .withVanishingRouteLineEnabled(true)
             .build()
         routeLineApi = MapboxRouteLineApi(mapboxRouteLineOptions)
         routeLineView = MapboxRouteLineView(mapboxRouteLineOptions)
@@ -215,9 +222,11 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         val routeArrowOptions = RouteArrowOptions.Builder(activity).build()
         routeArrowView = MapboxRouteArrowView(routeArrowOptions)
 
-        // load map style
+        var styleUrl = mapStyleUrlDay
+        if (styleUrl == null) styleUrl = Style.MAPBOX_STREETS
+        // load map style if set if not default
         mapboxMap.loadStyleUri(
-            Style.TRAFFIC_DAY
+            styleUrl
         )
 
         // initialize view interactions
@@ -240,6 +249,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         // set initial sounds button state
         binding.soundButton.mute()
 
+        mapView.gestures.addOnMapClickListener(mapClickListener)
         // initialize navigation trip observers
         registerObservers()
 
@@ -277,6 +287,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
             "getDurationRemaining" -> {
                 result.success(durationRemaining)
+            }
+            "reCenter" -> {
+                navigationCamera.requestNavigationCameraToFollowing()
             }
             else -> result.notImplemented()
         }
@@ -473,7 +486,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         // clear
         mapboxNavigation.setNavigationRoutes(listOf())
 
-        zoom = 15.0
+        zoom = zoom
         bearing = 0.0
         tilt = 0.0
         isNavigationCanceled = true
@@ -514,7 +527,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 // Centers the camera to the lng/lat specified.
                 .center(Point.fromLngLat(location.longitude, location.latitude))
                 // specifies the zoom value. Increase or decrease to zoom in or zoom out
-                .zoom(15.0)
+                .zoom(zoom)
                 // specify frame of reference from the center.
                 .padding(EdgeInsets(500.0, 0.0, 0.0, 0.0))
                 // specify frame of reference from the center.
@@ -609,6 +622,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         mapboxNavigation.registerLocationObserver(locationObserver)
         mapboxNavigation.registerVoiceInstructionsObserver(voiceInstructionsObserver)
         mapboxNavigation.registerRouteProgressObserver(replayProgressObserver)
+        mapboxNavigation.registerRouteAlternativesObserver(alternativesObserver)
     }
 
     open fun unregisterObservers() {
@@ -618,6 +632,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         mapboxNavigation.unregisterLocationObserver(locationObserver)
         mapboxNavigation.unregisterVoiceInstructionsObserver(voiceInstructionsObserver)
         mapboxNavigation.unregisterRouteProgressObserver(replayProgressObserver)
+        mapboxNavigation.unregisterRouteAlternativesObserver(alternativesObserver)
     }
 
     fun onDestroy() {
@@ -686,6 +701,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     private var isNavigationCanceled = false
 
     val BUTTON_ANIMATION_DURATION = 1500L
+
+    val routeClickPadding = 30 * Resources.getSystem().displayMetrics.density
 
     /**
      * Debug tool used to play, pause and seek route progress events that can be used to produce mocked location updates along the route.
@@ -1015,6 +1032,52 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             viewportDataSource.clearRouteData()
             viewportDataSource.evaluate()
         }
+    }
+
+    /**
+     * The SDK triggers [NavigationRouteAlternativesObserver] when available alternatives change.
+     */
+    private val alternativesObserver = object : NavigationRouteAlternativesObserver {
+        override fun onRouteAlternatives(
+            routeProgress: RouteProgress,
+            alternatives: List<NavigationRoute>,
+            routerOrigin: RouterOrigin
+        ) {
+            // Set the suggested alternatives
+            val updatedRoutes = mutableListOf<NavigationRoute>()
+            updatedRoutes.add(routeProgress.navigationRoute) // only primary route should persist
+            updatedRoutes.addAll(alternatives) // all old alternatives should be replaced by the new ones
+            mapboxNavigation.setNavigationRoutes(updatedRoutes)
+        }
+
+        override fun onRouteAlternativesError(error: RouteAlternativesError) {
+            // no impl
+        }
+    }
+
+    /**
+     * Click on any point of the alternative route on the map to make it primary.
+     */
+    private val mapClickListener = OnMapClickListener { point ->
+        routeLineApi.findClosestRoute(
+            point,
+            mapboxMap,
+            routeClickPadding
+        ) {
+            val routeFound = it.value?.route
+            // if we clicked on some route that is not primary,
+            // we make this route primary and all the others - alternative
+            if (routeFound != null && routeFound != routeLineApi.getPrimaryRoute()) {
+                val reOrderedRoutes = routeLineApi.getRoutes()
+                    .filter { navigationRoute -> navigationRoute != routeFound }
+                    .toMutableList()
+                    .also { list ->
+                        list.add(0, routeFound)
+                    }
+                mapboxNavigation.setRoutes(reOrderedRoutes)
+            }
+        }
+        false
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
