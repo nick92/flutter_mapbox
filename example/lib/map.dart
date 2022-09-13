@@ -57,6 +57,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
         allowsUTurnAtWayPoints: true,
         mode: MapBoxNavigationMode.drivingWithTraffic,
         units: VoiceUnits.imperial,
+        pois: [WayPoint(name: "", latitude: 0.0, longitude: 0.0)],
         simulateRoute: true,
         animateBuildRoute: true,
         longPressDestinationEnabled: true,
