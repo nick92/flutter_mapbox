@@ -40,7 +40,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
     // setState to update our non-existent appearance.
     if (!mounted) return;
 
-    // _directions = MapBoxNavigation(onRouteEvent: _onEmbeddedRouteEvent);
+    //_directions = MapBoxNavigation(onRouteEvent: _onEmbeddedRouteEvent);
     _options = MapBoxOptions(
         //initialLatitude: 36.1175275,
         //initialLongitude: -115.1839524,
@@ -60,6 +60,8 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
         simulateRoute: true,
         animateBuildRoute: true,
         longPressDestinationEnabled: true,
+        mapStyleUrlDay: "mapbox://styles/mapbox/navigation-day-v1",
+        mapStyleUrlNight: "mapbox://styles/mapbox/navigation-night-v1",
         language: "en");
 
     // String platformVersion;

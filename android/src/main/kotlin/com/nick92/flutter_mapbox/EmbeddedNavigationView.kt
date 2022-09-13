@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.graphics.BitmapFactory
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
@@ -27,6 +28,9 @@ import com.mapbox.maps.extension.style.expressions.dsl.generated.interpolate
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.MapAnimationOptions
 import com.mapbox.maps.plugin.animation.camera
+import com.mapbox.maps.plugin.annotation.annotations
+import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
+import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
@@ -99,9 +103,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         eventChannel?.setStreamHandler(this)
     }
 
-    open fun initNavigation(mv: MapView) {
+    open fun initNavigation(mv: MapView, arguments: Map<*, *>) {
         mapView = mv
         mapboxMap = mapView.getMapboxMap()
+
+        if(arguments != null)
+            setOptions(arguments)
 
         // initialize the location puck
         mapView.location.apply {
@@ -252,8 +259,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         mapView.gestures.addOnMapClickListener(mapClickListener)
         // initialize navigation trip observers
         registerObservers()
-
         mapboxNavigation.startTripSession(withForegroundService = false)
+        addAnnotationToMap()
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
@@ -289,7 +296,11 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 result.success(durationRemaining)
             }
             "reCenter" -> {
-                navigationCamera.requestNavigationCameraToFollowing()
+                navigationCamera.requestNavigationCameraToOverview(
+                    stateTransitionOptions = NavigationCameraTransitionOptions.Builder()
+                        .maxDuration(0) // instant transition
+                        .build()
+                )
             }
             else -> result.notImplemented()
         }
@@ -529,8 +540,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 // specifies the zoom value. Increase or decrease to zoom in or zoom out
                 .zoom(zoom)
                 // specify frame of reference from the center.
-                .padding(EdgeInsets(500.0, 0.0, 0.0, 0.0))
-                // specify frame of reference from the center.
                 .build(),
             mapAnimationOptions
         )
@@ -671,7 +680,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     var mapStyleUrlNight: String? = null
     var navigationLanguage = "en"
     var navigationVoiceUnits = DirectionsCriteria.METRIC
-    var zoom = 15.0
+    var zoom = 14.0
     var bearing = 0.0
     var tilt = 0.0
     var distanceRemaining: Double? = null
@@ -925,11 +934,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             // it's best to immediately move the camera to the current user location
             if (!firstLocationUpdateReceived) {
                 firstLocationUpdateReceived = true
-                navigationCamera.requestNavigationCameraToOverview(
-                    stateTransitionOptions = NavigationCameraTransitionOptions.Builder()
-                        .maxDuration(0) // instant transition
-                        .build()
-                )
+                val location = LatLng(enhancedLocation.latitude, enhancedLocation.longitude)
+                updateCamera(location)
             }
         }
     }
@@ -1078,6 +1084,24 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
         }
         false
+    }
+
+    private fun addAnnotationToMap() {
+        // Create an instance of the Annotation API and get the PointAnnotationManager.
+        val icon = BitmapFactory.decodeResource(
+            context.resources,
+            R.drawable.mapbox_marker_icon_default
+        )
+        val annotationApi = mapView?.annotations
+        val pointAnnotationManager = annotationApi.createPointAnnotationManager()
+
+        // Set options for the resulting symbol layer.
+        val pointAnnotationOptions: PointAnnotationOptions = PointAnnotationOptions()
+            .withPoint(Point.fromLngLat(-1.004689,52.231947))
+            .withIconImage(icon)
+
+        // Add the resulting pointAnnotation to the map.
+        pointAnnotationManager?.create(pointAnnotationOptions)
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {

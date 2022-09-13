@@ -1,8 +1,14 @@
+## 0.2.1
+
+* navigation carmera work on android to set to zoom 14
+* allow for arugments to be passed into mapview init
+
+
 ## 0.2.0
 
 * finish navigation intent on route clear
 * allow of alternative route selection on map click
-*  
+
 
 
 ## 0.1.8
