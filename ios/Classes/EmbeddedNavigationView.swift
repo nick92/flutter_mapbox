@@ -148,6 +148,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         navigationMapView.delegate = self
         navigationMapView.userLocationStyle = .puck2D()
         
+        let mapView = navigationMapView.mapView
+        let pointAnnotationManager = mapView?.annotations.makePointAnnotationManager()
+        
         if(self.arguments != nil)
         {
             _language = arguments?["language"] as? String ?? _language
@@ -161,7 +164,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             _mapStyleUrlDay = arguments?["mapStyleUrlDay"] as? String
             _zoom = arguments?["zoom"] as? Double ?? _zoom
             _bearing = arguments?["bearing"] as? Double ?? _bearing
-            _tilt = arguments?["tilt"] as? Double ?? _tilt
+            _pitch = arguments?["tilt"] as? Double ?? _pitch
             _animateBuildRoute = arguments?["animateBuildRoute"] as? Bool ?? _animateBuildRoute
             _longPressDestinationEnabled = arguments?["longPressDestinationEnabled"] as? Bool ?? _longPressDestinationEnabled
             _maxHeight = arguments?["maxHeight"] as? String
@@ -181,7 +184,30 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 CLLocationManager.authorizationStatus() == .authorizedAlways) {
                 currentLocation = locationManager.location
             }
+            
+            let oPOIs = arguments?["poi"] as? NSDictionary
+            var pois = [PointAnnotation]()
 
+            for item in oPOIs as NSDictionary
+            {
+                let point = item.value as! NSDictionary
+                guard let oName = point["Name"] as? String else {return}
+                guard let oLatitude = point["Latitude"] as? Double else {return}
+                guard let oLongitude = point["Longitude"] as? Double else {return}
+                
+                let centerCoordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
+                var customPointAnnotation = PointAnnotation(coordinate: centerCoordinate)
+                customPointAnnotation.image = .init(image: UIImage(named: "ParkingIcon")!, name: "ParkingIcon")
+                customPointAnnotation.iconSize = 0.3
+                customPointAnnotation.textField = oName
+                customPointAnnotation.textSize = 12
+                customPointAnnotation.textOffset = [0, 2]
+                
+                pois.append(customPointAnnotation)
+            }
+            
+            pointAnnotationManager?.annotations = pois
+            
             let initialLatitude = arguments?["initialLatitude"] as? Double ?? currentLocation?.coordinate.latitude
             let initialLongitude = arguments?["initialLongitude"] as? Double ?? currentLocation?.coordinate.longitude
             if(initialLatitude != nil && initialLongitude != nil)
@@ -285,9 +311,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             mode = .walking
         }
 
-        var maxHeight = arguments?["maxHeight"] as? String
-        var maxWeight = arguments?["maxWeight"] as? String
-        var maxWidth = arguments?["maxWidth"] as? String
+        let maxHeight = arguments?["maxHeight"] as? String
+        let maxWeight = arguments?["maxWeight"] as? String
+        let maxWidth = arguments?["maxWidth"] as? String
 
         var items = [URLQueryItem]();
         
@@ -450,23 +476,17 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         navigationViewportDataSource.followingMobileCamera.center = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
         navigationViewportDataSource.followingMobileCamera.zoom = _zoom
         navigationViewportDataSource.followingMobileCamera.bearing = _bearing
-        navigationViewportDataSource.followingMobileCamera.pitch = 15
+        navigationViewportDataSource.followingMobileCamera.pitch = _pitch
         navigationViewportDataSource.followingMobileCamera.padding = .zero
         navigationMapView.navigationCamera.viewportDataSource = navigationViewportDataSource
     }
     
     func moveCameraToCenter()
     {
-        var duration = 5.0
-        if(!_animateBuildRoute)
-        {
-            duration = 0.0
-        }
-        
         let navigationViewportDataSource = NavigationViewportDataSource(navigationMapView.mapView, viewportDataSourceType: .raw)
         navigationViewportDataSource.options.followingCameraOptions.zoomUpdatesAllowed = false
-        navigationViewportDataSource.followingMobileCamera.zoom = 13.0
-        navigationViewportDataSource.followingMobileCamera.pitch = 15
+        navigationViewportDataSource.followingMobileCamera.zoom = _zoom
+        navigationViewportDataSource.followingMobileCamera.pitch = _pitch
         navigationViewportDataSource.followingMobileCamera.padding = .zero
         //navigationViewportDataSource.followingMobileCamera.center = mapView?.centerCoordinate
         navigationMapView.navigationCamera.viewportDataSource = navigationViewportDataSource

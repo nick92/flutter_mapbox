@@ -1,3 +1,7 @@
+## 0.2.2
+
+* add annotation work for poi's on iOS
+
 ## 0.2.1
 
 * navigation carmera work on android to set to zoom 14
