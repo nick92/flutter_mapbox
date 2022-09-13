@@ -1,3 +1,7 @@
+## 0.2.3
+
+* add pois to mapbox options
+
 ## 0.2.2
 
 * add annotation work for poi's on iOS
