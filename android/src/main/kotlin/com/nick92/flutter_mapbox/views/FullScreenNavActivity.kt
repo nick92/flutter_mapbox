@@ -197,12 +197,12 @@ class FullscreenNavActivity : AppCompatActivity() {
         speechApi = MapboxSpeechApi(
             this,
             accessToken!!,
-            Locale.UK.language
+            FlutterMapboxPlugin.navigationLanguage
         )
         voiceInstructionsPlayer = MapboxVoiceInstructionsPlayer(
             this,
             accessToken!!,
-            Locale.UK.language
+            FlutterMapboxPlugin.navigationLanguage
         )
 
         // initialize route line, the withRouteLineBelowLayerId is specified to place
@@ -252,12 +252,6 @@ class FullscreenNavActivity : AppCompatActivity() {
             isVoiceInstructionsMuted = !isVoiceInstructionsMuted
         }
 
-        // set initial sounds button state
-        binding.soundButton.unmute()
-
-        // start the trip session to being receiving location updates in free drive
-        // and later when a route is set also receiving route progress updates
-        mapboxNavigation.startTripSession()
     }
 
     override fun onStart() {
@@ -269,6 +263,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         mapboxNavigation.registerLocationObserver(locationObserver)
         mapboxNavigation.registerVoiceInstructionsObserver(voiceInstructionsObserver)
         mapboxNavigation.registerRouteProgressObserver(replayProgressObserver)
+
 
         if (mapboxNavigation.getRoutes().isEmpty()) {
             // if simulation is enabled (ReplayLocationEngine set to NavigationOptions)
@@ -285,7 +280,7 @@ class FullscreenNavActivity : AppCompatActivity() {
             mapboxReplayer.playFirstLocation()
 
         }
-        navigationCamera.requestNavigationCameraToFollowing()
+        findRoute(points.last())
     }
 
     override fun onStop() {
@@ -326,6 +321,7 @@ class FullscreenNavActivity : AppCompatActivity() {
                 .applyDefaultNavigationOptions()
                 .applyLanguageAndVoiceUnitOptions(this)
                 .coordinatesList(listOf(originPoint, destination))
+                .language(FlutterMapboxPlugin.navigationLanguage)
                 // provide the bearing for the origin of the request to ensure
                 // that the returned route faces in the direction of the current user movement
                 .bearingsList(
@@ -437,9 +433,6 @@ class FullscreenNavActivity : AppCompatActivity() {
         // set routes, where the first route in the list is the primary route that
         // will be used for active guidance
         mapboxNavigation.setRoutes(routes)
-
-        // start location simulation along the primary route
-        startSimulation(routes.first())
 
         // show UI elements
         binding.soundButton.visibility = View.VISIBLE
