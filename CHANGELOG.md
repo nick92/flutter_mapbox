@@ -1,3 +1,12 @@
+## 0.2.5
+
+* add point annotation tap events to ios
+* fix voice language argument for android
+
+## 0.2.4
+
+* fix pois null reference exception
+
 ## 0.2.3
 
 * add pois to mapbox options

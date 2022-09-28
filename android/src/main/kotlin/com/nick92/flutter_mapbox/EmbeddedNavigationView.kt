@@ -206,12 +206,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         speechApi = MapboxSpeechApi(
             activity,
             token,
-            Locale.UK.language
+            navigationLanguage
         )
         voiceInstructionsPlayer = MapboxVoiceInstructionsPlayer(
             activity,
             token,
-            Locale.UK.language
+            navigationLanguage
         )
 
         // initialize route line, the withRouteLineBelowLayerId is specified to place

@@ -23,6 +23,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     
     var _mapInitialized = false;
     var locationManager = CLLocationManager()
+    var _selectedAnnotation: Annotation?
     
     init(messenger: FlutterBinaryMessenger, frame: CGRect, viewId: Int64, args: Any?)
     {
@@ -185,7 +186,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 currentLocation = locationManager.location
             }
             
-            let oPOIs = arguments?["poi"] as? NSDictionary
+            let oPOIs = arguments?["poi"] as? NSDictionary ?? [:]
             var pois = [PointAnnotation]()
 
             for item in oPOIs as NSDictionary
@@ -198,7 +199,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 let centerCoordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
                 var customPointAnnotation = PointAnnotation(coordinate: centerCoordinate)
                 customPointAnnotation.image = .init(image: UIImage(named: "ParkingIcon")!, name: "ParkingIcon")
-                customPointAnnotation.iconSize = 0.3
+                customPointAnnotation.iconSize = 0.2
                 customPointAnnotation.textField = oName
                 customPointAnnotation.textSize = 12
                 customPointAnnotation.textOffset = [0, 2]
@@ -206,6 +207,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 pois.append(customPointAnnotation)
             }
             
+            pointAnnotationManager?.delegate = self
             pointAnnotationManager?.annotations = pois
             
             let initialLatitude = arguments?["initialLatitude"] as? Double ?? currentLocation?.coordinate.latitude
@@ -239,6 +241,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
     func clearRoute(arguments: NSDictionary?, result: @escaping FlutterResult)
     {
+        _wayPoints.removeAll()
+        
         if routeResponse == nil
         {
             result(true)
@@ -253,7 +257,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         _durationRemaining = 0
         
         routeResponse = nil
-        _wayPoints.removeAll()
         sendEvent(eventType: MapBoxEventType.navigation_cancelled)
         result(true)
     }
@@ -363,7 +366,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 print(error.localizedDescription) // TODO -- throw this erro back to flutter
                 self?._routeBuildResponse = error.localizedDescription
                 self?.sendEvent(eventType: MapBoxEventType.route_build_failed)
-                flutterResult(false)
+                flutterResult(true)
             case .success(let response):
                 guard let strongSelf = self else { return }
                 strongSelf.routeResponse = response
@@ -371,8 +374,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 
                 strongSelf._distanceRemaining = response.routes!.first?.distance
                 strongSelf._durationRemaining = response.routes!.first?.expectedTravelTime
-                
-                
                 
                 strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
                 flutterResult(true)
@@ -500,6 +501,14 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                                        //(camera, withDuration: duration, animationTimingFunction: CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut))
     }
 
+}
+
+extension FlutterMapboxNavigationView: AnnotationInteractionDelegate {
+    public func annotationManager(_ manager: AnnotationManager, didDetectTappedAnnotations annotations: [Annotation]) {
+        print("Annotations tapped: \(annotations)")
+        _selectedAnnotation = annotations[0]
+        strongSelf.sendEvent(eventType: MapBoxEventType.annotation_tapped)
+    }
 }
 
 extension FlutterMapboxNavigationView : NavigationServiceDelegate {

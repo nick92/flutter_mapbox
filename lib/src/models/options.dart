@@ -118,7 +118,7 @@ class MapBoxOptions {
       }
     }
 
-    if (pois!.isNotEmpty) {
+    if (pois != null && pois!.isNotEmpty) {
       List<Map<String, Object?>> poiList = [];
 
       for (var poi in pois!) {
