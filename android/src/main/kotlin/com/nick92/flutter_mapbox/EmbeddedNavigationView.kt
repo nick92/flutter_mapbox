@@ -122,7 +122,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             enabled = true
         }
 
-
         // initialize Mapbox Navigation
         mapboxNavigation = if (MapboxNavigationProvider.isCreated()) {
             MapboxNavigationProvider.retrieve()
@@ -130,7 +129,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             MapboxNavigationProvider.create(
                 NavigationOptions.Builder(context)
                     .accessToken(token)
-                    .locationEngine(replayLocationEngine)
+                    // .locationEngine(replayLocationEngine)
                     .build()
             )
         } else {
@@ -201,17 +200,16 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .build()
         )
 
-
         // initialize voice instructions api and the voice instruction player
         speechApi = MapboxSpeechApi(
             activity,
             token,
-            Locale.UK.language
+            navigationLanguage
         )
         voiceInstructionsPlayer = MapboxVoiceInstructionsPlayer(
             activity,
             token,
-            Locale.UK.language
+            navigationLanguage
         )
 
         // initialize route line, the withRouteLineBelowLayerId is specified to place
@@ -326,15 +324,15 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 wayPoints.add(Point.fromLngLat(longitude, latitude))
             }
             
-            val height = arguments["maxHeight"] as String
-            val weight = arguments["maxWeight"] as String
-            val width = arguments["maxWidth"] as String
+            val height = arguments["maxHeight"] as? String
+            val weight = arguments["maxWeight"] as? String
+            val width = arguments["maxWidth"] as? String
 
-            if(height.isNotEmpty())
+            if(height != null)
                 maxHeight = height.toDouble()
-            if(weight.isNotEmpty())
+            if(weight != null)
                 maxWeight = weight.toDouble()
-            if(width.isNotEmpty())
+            if(width != null)
                 maxWidth = width.toDouble()
 
             getRoute(context)
@@ -583,9 +581,16 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         initialLatitude = arguments["initialLatitude"] as? Double
         initialLongitude = arguments["initialLongitude"] as? Double
 
-        maxHeight = arguments["maxHeight"] as? Double
-        maxWeight = arguments["maxWeight"] as? Double
-        maxWidth = arguments["maxWidth"] as? Double
+        val height = arguments["maxHeight"] as? String
+        val weight = arguments["maxWeight"] as? String
+        val width = arguments["maxWidth"] as? String
+
+        if(height != null)
+            maxHeight = height.toDouble()
+        if(weight != null)
+            maxWeight = weight.toDouble()
+        if(width != null)
+            maxWidth = width.toDouble()
 
         val zm = arguments["zoom"] as? Double
         if(zm != null)
