@@ -1,3 +1,7 @@
+## 0.2.6
+
+* pass language argument into full screen navigation building
+
 ## 0.2.5
 
 * add point annotation tap events to ios
