@@ -73,6 +73,10 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             {
                 result(strongSelf._routeBuildResponse)
             }
+            else if(call.method == "getSelectedAnnotation")
+            {
+                result(strongSelf._selectedAnnotation);
+            }
             else if(call.method == "finishNavigation")
             {
                 strongSelf.endNavigation(result: result)
@@ -505,7 +509,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
 extension FlutterMapboxNavigationView: AnnotationInteractionDelegate {
     public func annotationManager(_ manager: AnnotationManager, didDetectTappedAnnotations annotations: [Annotation]) {
-        print("Annotations tapped: \(annotations)")
         _selectedAnnotation = annotations[0]
         strongSelf.sendEvent(eventType: MapBoxEventType.annotation_tapped)
     }

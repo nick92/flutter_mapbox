@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_mapbox/src/models/annotation.dart';
 import '../models/models.dart';
 
 /// Controller for a single MapBox Navigation instance running on the host platform.
@@ -39,6 +40,11 @@ class MapBoxNavigationViewController {
   Future<double> get durationRemaining => _methodChannel
       .invokeMethod<double>('getDurationRemaining')
       .then<double>((dynamic result) => result);
+
+  ///Get last selected annotation
+  Future<Annotation> get selectedAnnotation => _methodChannel
+      .invokeMethod<Annotation>('getSelectedAnnotation')
+      .then<Annotation>((dynamic result) => result);
 
   ///Set camera to desired lat / lng coordinates
   Future<bool> updateCameraPosition(
