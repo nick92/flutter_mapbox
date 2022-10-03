@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mapbox/flutter_mapbox.dart';
+import 'package:location/location.dart';
 
 class SampleNavigationApp extends StatefulWidget {
   @override
@@ -18,8 +19,8 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
   final _store =
       WayPoint(name: "Padeswood", latitude: 53.156263, longitude: -3.060583);
 
-  late MapBoxNavigation _directions;
-  late MapBoxOptions _options;
+  MapBoxNavigation? _directions;
+  MapBoxOptions? _options;
 
   bool _isMultipleStop = false;
   double? _distanceRemaining, _durationRemaining;
@@ -30,52 +31,65 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
   @override
   void initState() {
     super.initState();
-    initialize();
+    Future((() => initialize()));
   }
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initialize() async {
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
+    try {
+      Location location = Location();
+      // If the widget was removed from the tree while the asynchronous platform
+      // message was in flight, we want to discard the reply rather than calling
+      // setState to update our non-existent appearance.
+      if (!mounted) return;
 
-    //_directions = MapBoxNavigation(onRouteEvent: _onEmbeddedRouteEvent);
-    _options = MapBoxOptions(
-        //initialLatitude: 36.1175275,
-        //initialLongitude: -115.1839524,
-        maxHeight: "4.5",
-        maxWeight: "44",
-        maxWidth: "2",
-        zoom: 15.0,
-        tilt: 0.0,
-        bearing: 0.0,
-        enableRefresh: false,
-        alternatives: true,
-        voiceInstructionsEnabled: true,
-        bannerInstructionsEnabled: true,
-        allowsUTurnAtWayPoints: true,
-        mode: MapBoxNavigationMode.drivingWithTraffic,
-        units: VoiceUnits.imperial,
-        pois: [WayPoint(name: "", latitude: 0.0, longitude: 0.0)],
-        simulateRoute: true,
-        animateBuildRoute: true,
-        longPressDestinationEnabled: true,
-        mapStyleUrlDay: "mapbox://styles/mapbox/navigation-day-v1",
-        mapStyleUrlNight: "mapbox://styles/mapbox/navigation-night-v1",
-        language: "en");
+      bool _serviceEnabled;
+      PermissionStatus _permissionGranted;
+      LocationData _locationData;
 
-    // String platformVersion;
-    // // Platform messages may fail, so we use a try/catch PlatformException.
-    // try {
-    //   platformVersion = await _controller!.platformVersion;
-    // } on PlatformException {
-    //   platformVersion = 'Failed to get platform version.';
-    // }
-    //
-    // setState(() {
-    //   _platformVersion = platformVersion;
-    // });
+      _serviceEnabled = await location.serviceEnabled();
+      if (!_serviceEnabled) {
+        _serviceEnabled = await location.requestService();
+        if (!_serviceEnabled) {
+          return;
+        }
+      }
+
+      _permissionGranted = await location.hasPermission();
+      if (_permissionGranted == PermissionStatus.denied) {
+        _permissionGranted = await location.requestPermission();
+        if (_permissionGranted != PermissionStatus.granted) {
+          return;
+        }
+      }
+      _locationData = await location.getLocation();
+
+      _directions = MapBoxNavigation(onRouteEvent: _onEmbeddedRouteEvent);
+      var options = MapBoxOptions(
+          initialLatitude: 36.1175275,
+          initialLongitude: -115.1839524,
+          zoom: 13.0,
+          tilt: 0.0,
+          bearing: 0.0,
+          enableRefresh: true,
+          alternatives: true,
+          voiceInstructionsEnabled: true,
+          bannerInstructionsEnabled: true,
+          allowsUTurnAtWayPoints: true,
+          mode: MapBoxNavigationMode.drivingWithTraffic,
+          units: VoiceUnits.imperial,
+          simulateRoute: false,
+          longPressDestinationEnabled: true,
+          mapStyleUrlDay: "mapbox://styles/mapbox/navigation-day-v1",
+          mapStyleUrlNight: "mapbox://styles/mapbox/navigation-night-v1",
+          language: "en");
+
+      setState(() {
+        _options = options;
+      });
+    } catch (err) {
+      print(err);
+    }
   }
 
   @override
@@ -116,7 +130,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                                   _controller!.clearRoute();
                                 } else {
                                   var wayPoints = <WayPoint>[];
-                                  wayPoints.add(_home);
+                                  //wayPoints.add(_home);
                                   wayPoints.add(_store);
                                   _isMultipleStop = wayPoints.length > 2;
                                   _controller!.buildRoute(
@@ -132,9 +146,15 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                       Row(children: [
                         ElevatedButton(
                           child: Text("Start "),
-                          onPressed: _routeBuilt && !_isNavigating
+                          onPressed: !_isNavigating
                               ? () {
-                                  _controller!.startFullScreenNavigation();
+                                  // _controller!.startFullScreenNavigation();
+                                  var wayPoints = <WayPoint>[];
+                                  wayPoints.add(_home);
+                                  wayPoints.add(_store);
+                                  _isMultipleStop = wayPoints.length > 2;
+                                  _directions!.startNavigation(
+                                      wayPoints: wayPoints, options: _options!);
                                 }
                               : null,
                         ),
@@ -201,20 +221,21 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                 ],
               ),
             ),
-            Expanded(
-              flex: 1,
-              child: Container(
-                color: Colors.grey,
-                child: MapBoxNavigationView(
-                    options: _options,
-                    onRouteEvent: _onEmbeddedRouteEvent,
-                    onCreated:
-                        (MapBoxNavigationViewController controller) async {
-                      _controller = controller;
-                      controller.initialize();
-                    }),
-              ),
-            )
+            if (_options != null)
+              Expanded(
+                flex: 1,
+                child: Container(
+                  color: Colors.grey,
+                  child: MapBoxNavigationView(
+                      options: _options,
+                      onRouteEvent: _onEmbeddedRouteEvent,
+                      onCreated:
+                          (MapBoxNavigationViewController controller) async {
+                        _controller = controller;
+                        _controller!.initialize();
+                      }),
+                ),
+              )
           ]),
         ),
       ),
