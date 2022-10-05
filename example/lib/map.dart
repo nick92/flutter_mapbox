@@ -130,7 +130,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                                   _controller!.clearRoute();
                                 } else {
                                   var wayPoints = <WayPoint>[];
-                                  //wayPoints.add(_home);
+                                  wayPoints.add(_home);
                                   wayPoints.add(_store);
                                   _isMultipleStop = wayPoints.length > 2;
                                   _controller!.buildRoute(
@@ -148,21 +148,21 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                           child: Text("Start "),
                           onPressed: !_isNavigating
                               ? () {
-                                  // _controller!.startFullScreenNavigation();
+                                  _controller!.startFullScreenNavigation();
+                                }
+                              : null,
+                        ),
+                        ElevatedButton(
+                          child: Text("Start 2"),
+                          onPressed: !_isNavigating
+                              ? () {
+                                  // _controller!.finishNavigation();
                                   var wayPoints = <WayPoint>[];
                                   wayPoints.add(_home);
                                   wayPoints.add(_store);
                                   _isMultipleStop = wayPoints.length > 2;
                                   _directions!.startNavigation(
                                       wayPoints: wayPoints, options: _options!);
-                                }
-                              : null,
-                        ),
-                        ElevatedButton(
-                          child: Text("Cancel "),
-                          onPressed: _isNavigating
-                              ? () {
-                                  _controller!.finishNavigation();
                                 }
                               : null,
                         )
