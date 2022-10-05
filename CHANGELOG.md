@@ -1,3 +1,8 @@
+## 0.2.7
+
+* fix for iOS strongSelf error
+
+
 ## 0.2.6
 
 * pass language argument into full screen navigation building
