@@ -247,6 +247,10 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
     // _durationRemaining = await _controller!.durationRemaining;
 
     switch (e.eventType) {
+      case MapBoxEvent.annotation_tapped:
+        var annotation = _controller!.selectedAnnotation;
+        print(annotation);
+        break;
       case MapBoxEvent.progress_change:
         var progressEvent = e.data as RouteProgressEvent;
         if (progressEvent.currentStepInstruction != null)

@@ -510,7 +510,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 extension FlutterMapboxNavigationView: AnnotationInteractionDelegate {
     public func annotationManager(_ manager: AnnotationManager, didDetectTappedAnnotations annotations: [Annotation]) {
         _selectedAnnotation = annotations[0]
-        strongSelf.sendEvent(eventType: MapBoxEventType.annotation_tapped)
+        sendEvent(eventType: MapBoxEventType.annotation_tapped)
     }
 }
 
