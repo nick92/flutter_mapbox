@@ -252,6 +252,7 @@ class FullscreenNavActivity : AppCompatActivity() {
             isVoiceInstructionsMuted = !isVoiceInstructionsMuted
         }
 
+        binding.soundButton.unmute()
     }
 
     override fun onStart() {
@@ -280,7 +281,9 @@ class FullscreenNavActivity : AppCompatActivity() {
             mapboxReplayer.playFirstLocation()
 
         }
-        findRoute(points.last())
+
+
+        findRoute(origin = points[0], destination = points[1])
     }
 
     override fun onStop() {
@@ -357,26 +360,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         )
     }
 
-    //MultiWaypoint Navigation
-    private fun addWaypoint(destination: Point, name: String?) {
-        val originLocation = navigationLocationProvider.lastLocation
-        val originPoint = originLocation?.let {
-            Point.fromLngLat(it.longitude, it.latitude)
-        } ?: return
-
-        // we always start a route from the current location
-        if (addedWaypoints.isEmpty) {
-            addedWaypoints.addRegular(originPoint)
-        }
-
-        if (name != null) {
-            // When you add named waypoints, the string you use here inside "" would be shown in `Maneuver` and played in `Voice` instructions.
-            // In this example waypoint names will be visible in the logcat.
-            addedWaypoints.addNamed(destination, name)
-        } else {
-            // When you add silent waypoints, make sure it is followed by a regular or named waypoint, otherwise silent waypoint is treated as a regular waypoint
-            addedWaypoints.addSilent(destination)
-        }
+    private fun findRoute(origin: Point, destination: Point) {
 
         // execute a route request
         // it's recommended to use the
@@ -387,16 +371,27 @@ class FullscreenNavActivity : AppCompatActivity() {
             RouteOptions.builder()
                 .applyDefaultNavigationOptions()
                 .applyLanguageAndVoiceUnitOptions(this)
-                .coordinatesList(addedWaypoints.coordinatesList())
-                .waypointIndicesList(addedWaypoints.waypointsIndices())
-                .waypointNamesList(addedWaypoints.waypointsNames())
+                .coordinatesList(listOf(origin, destination))
+                .language(FlutterMapboxPlugin.navigationLanguage)
+                // provide the bearing for the origin of the request to ensure
+                // that the returned route faces in the direction of the current user movement
+                .bearingsList(
+                    listOf(
+                        Bearing.builder()
+                            .angle(1.0)
+                            .degrees(45.0)
+                            .build(),
+                        null
+                    )
+                )
+                .layersList(listOf(mapboxNavigation.getZLevel(), null))
                 .build(),
             object : RouterCallback {
                 override fun onRoutesReady(
                     routes: List<DirectionsRoute>,
                     routerOrigin: RouterOrigin
                 ) {
-                    setRoute(routes)
+                    setRouteAndStartNavigation(routes)
                 }
 
                 override fun onFailure(
@@ -439,8 +434,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         binding.routeOverview.visibility = View.VISIBLE
         binding.tripProgressCard.visibility = View.VISIBLE
 
-        // move the camera to overview when new route is available
-        navigationCamera.requestNavigationCameraToFollowing()
+        mapboxNavigation.startTripSession()
     }
 
     private fun clearRouteAndStopNavigation() {
