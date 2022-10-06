@@ -1,3 +1,15 @@
+## 0.3.0
+
+* amend mapbox versions
+
+## 0.2.9
+
+* amend mapbox versions
+
+## 0.2.8
+
+* fix for iOS strongSelf error
+
 ## 0.2.7
 
 * add location grant work

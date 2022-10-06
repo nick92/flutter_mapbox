@@ -1,6 +1,6 @@
 name: flutter_mapbox
 description: Add Turn By Turn Navigation to Your Flutter Application Using MapBox. Never leave your app when you need to navigate your users to a location.
-version: 0.2.7
+version: 0.3.0
 homepage: https://github.com/nick92/flutter_mapbox
 
 environment:

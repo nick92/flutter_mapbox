@@ -23,7 +23,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     
     var _mapInitialized = false;
     var locationManager = CLLocationManager()
-    var _selectedAnnotation: Annotation?
+    var _selectedAnnotation: String?
     
     init(messenger: FlutterBinaryMessenger, frame: CGRect, viewId: Int64, args: Any?)
     {
@@ -89,7 +89,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             {
                 strongSelf.startNonEmbeddedNavigation(arguments: arguments, result: result)
             }
-            else if(call.method == "reCenter"){
+            else if(call.method == "reCenter")
+            {
                 //used to recenter map from user action during navigation
                 strongSelf.navigationMapView.navigationCamera.follow()
             }
@@ -509,7 +510,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
 extension FlutterMapboxNavigationView: AnnotationInteractionDelegate {
     public func annotationManager(_ manager: AnnotationManager, didDetectTappedAnnotations annotations: [Annotation]) {
-        _selectedAnnotation = annotations[0]
+        _selectedAnnotation = annotations[0].id
+        print(annotations[0])
         sendEvent(eventType: MapBoxEventType.annotation_tapped)
     }
 }
