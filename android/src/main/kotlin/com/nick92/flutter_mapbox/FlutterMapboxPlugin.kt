@@ -12,6 +12,7 @@ import com.nick92.flutter_mapbox.views.EmbeddedViewFactory
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.geojson.Point
+import com.mapbox.navigation.base.route.NavigationRoute
 import com.nick92.flutter_mapbox.views.FullscreenNavigationLauncher
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -53,7 +54,7 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
     var PERMISSION_REQUEST_CODE: Int = 367
 
     lateinit var routes : List<DirectionsRoute>
-    private var currentRoute: DirectionsRoute? = null
+    var currentRoute: NavigationRoute? = null
     val wayPoints: MutableList<Point> = mutableListOf()
 
     var showAlternateRoutes: Boolean = true

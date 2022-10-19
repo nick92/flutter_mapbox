@@ -14,7 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.nick92.flutter_mapbox.FlutterMapboxPlugin
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
-import com.nick92.flutter_mapbox.utilities.PluginUtilities.Companion.sendEvent
 import com.mapbox.api.directions.v5.models.*
 import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
@@ -71,6 +70,7 @@ import com.mapbox.navigation.ui.voice.model.SpeechVolume
 import com.nick92.flutter_mapbox.R
 import com.nick92.flutter_mapbox.databinding.MapActivityBinding
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
+import com.nick92.flutter_mapbox.utilities.PluginUtilities.Companion.sendEvent
 import java.util.*
 
 class FullscreenNavActivity : AppCompatActivity() {
@@ -266,7 +266,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         mapboxNavigation.registerRouteProgressObserver(replayProgressObserver)
 
 
-        if (mapboxNavigation.getRoutes().isEmpty()) {
+        if (mapboxNavigation.getNavigationRoutes().isEmpty()) {
             // if simulation is enabled (ReplayLocationEngine set to NavigationOptions)
             // but we're not simulating yet,
             // push a single location sample to establish origin
@@ -279,11 +279,14 @@ class FullscreenNavActivity : AppCompatActivity() {
                 )
             )
             mapboxReplayer.playFirstLocation()
-
         }
 
-
-        findRoute(origin = points[0], destination = points[1])
+        // if current route is set then use it, if not then query route
+        if(FlutterMapboxPlugin.currentRoute != null){
+            setRouteAndStartNavigation(FlutterMapboxPlugin.currentRoute!!)
+        } else {
+            findRoute(origin = points[0], destination = points[1])
+        }
     }
 
     override fun onStop() {
@@ -343,7 +346,7 @@ class FullscreenNavActivity : AppCompatActivity() {
                     routes: List<DirectionsRoute>,
                     routerOrigin: RouterOrigin
                 ) {
-                    setRouteAndStartNavigation(routes)
+                    setRoutesAndStartNavigation(routes)
                 }
 
                 override fun onFailure(
@@ -391,7 +394,7 @@ class FullscreenNavActivity : AppCompatActivity() {
                     routes: List<DirectionsRoute>,
                     routerOrigin: RouterOrigin
                 ) {
-                    setRouteAndStartNavigation(routes)
+                    setRoutesAndStartNavigation(routes)
                 }
 
                 override fun onFailure(
@@ -418,13 +421,13 @@ class FullscreenNavActivity : AppCompatActivity() {
 
     // Resets the current route
     private fun resetCurrentRoute() {
-        if (mapboxNavigation.getRoutes().isNotEmpty()) {
-            mapboxNavigation.setRoutes(emptyList()) // reset route
+        if (mapboxNavigation.getNavigationRoutes().isNotEmpty()) {
+            mapboxNavigation.setNavigationRoutes(emptyList()) // reset route
             addedWaypoints.clear() // reset stored waypoints
         }
     }
 
-    private fun setRouteAndStartNavigation(routes: List<DirectionsRoute>) {
+    private fun setRoutesAndStartNavigation(routes: List<DirectionsRoute>) {
         // set routes, where the first route in the list is the primary route that
         // will be used for active guidance
         mapboxNavigation.setRoutes(routes)
@@ -437,9 +440,22 @@ class FullscreenNavActivity : AppCompatActivity() {
         mapboxNavigation.startTripSession()
     }
 
+    private fun setRouteAndStartNavigation(route: NavigationRoute) {
+        // set routes, where the first route in the list is the primary route that
+        // will be used for active guidance
+        mapboxNavigation.setNavigationRoutes(listOf(route))
+
+        // show UI elements
+        binding.soundButton.visibility = View.VISIBLE
+        binding.routeOverview.visibility = View.VISIBLE
+        binding.tripProgressCard.visibility = View.VISIBLE
+
+        mapboxNavigation.startTripSession()
+    }
+
     private fun clearRouteAndStopNavigation() {
         // clear
-        mapboxNavigation.setRoutes(listOf())
+        mapboxNavigation.setNavigationRoutes(listOf())
 
         // stop simulation
         mapboxReplayer.stop()

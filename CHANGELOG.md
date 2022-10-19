@@ -1,3 +1,12 @@
+## 0.3.2
+
+* update of mapbox android maps 
+* beginning of annotations work for android
+
+## 0.3.1
+
+* fix for PluginUtilities error
+
 ## 0.3.0
 
 * amend mapbox versions
