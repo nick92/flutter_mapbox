@@ -325,17 +325,17 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 wayPoints.add(Point.fromLngLat(longitude, latitude))
             }
 
-            val POIs = arguments?.get("poi") as HashMap<*, *>
-
-            for (item in POIs)
-            {
-                val poi = item.value as HashMap<*, *>
-                var name = poi["Name"] as String
-                val latitude = poi["Latitude"] as Double
-                val longitude = poi["Longitude"] as Double
-                //var pointAnnotation =
-                //pois.add(PointAnnotation(geometry = Point.fromLngLat(longitude, latitude), id = 123, an))
-            }
+//            val POIs = arguments?.get("poi") as HashMap<*, *>
+//
+//            for (item in POIs)
+//            {
+//                val poi = item.value as HashMap<*, *>
+//                var name = poi["Name"] as String
+//                val latitude = poi["Latitude"] as Double
+//                val longitude = poi["Longitude"] as Double
+//                //var pointAnnotation =
+//                //pois.add(PointAnnotation(geometry = Point.fromLngLat(longitude, latitude), id = 123, an))
+//            }
             
             val height = arguments["maxHeight"] as? String
             val weight = arguments["maxWeight"] as? String

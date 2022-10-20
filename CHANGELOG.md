@@ -1,3 +1,7 @@
+## 0.3.3
+
+* remove POI work for now
+
 ## 0.3.2
 
 * update of mapbox android maps 
