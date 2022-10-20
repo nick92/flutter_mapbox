@@ -24,6 +24,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     var _mapInitialized = false;
     var locationManager = CLLocationManager()
     var _selectedAnnotation: String?
+    var pois = [PointAnnotation]()
     
     init(messenger: FlutterBinaryMessenger, frame: CGRect, viewId: Int64, args: Any?)
     {
@@ -192,7 +193,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             }
             
             let oPOIs = arguments?["poi"] as? NSDictionary ?? [:]
-            var pois = [PointAnnotation]()
 
             for item in oPOIs as NSDictionary
             {
@@ -510,8 +510,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
 extension FlutterMapboxNavigationView: AnnotationInteractionDelegate {
     public func annotationManager(_ manager: AnnotationManager, didDetectTappedAnnotations annotations: [Annotation]) {
-        _selectedAnnotation = annotations[0].id
-        print(annotations[0])
+        _selectedAnnotation = pois.first(where: { value -> Bool in
+            value.id == annotations[0].id
+        })?.textField
         sendEvent(eventType: MapBoxEventType.annotation_tapped)
     }
 }

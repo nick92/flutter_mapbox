@@ -1,3 +1,8 @@
+## 0.3.4
+
+* iOS POI annotation click work
+
+
 ## 0.3.3
 
 * remove POI work for now

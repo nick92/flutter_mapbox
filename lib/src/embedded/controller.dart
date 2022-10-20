@@ -42,9 +42,9 @@ class MapBoxNavigationViewController {
       .then<double>((dynamic result) => result);
 
   ///Get last selected annotation
-  Future<Annotation> get selectedAnnotation => _methodChannel
-      .invokeMethod<Annotation>('getSelectedAnnotation')
-      .then<Annotation>((dynamic result) => result);
+  Future<String> get selectedAnnotation => _methodChannel
+      .invokeMethod<String>('getSelectedAnnotation')
+      .then<String>((dynamic result) => result);
 
   ///Set camera to desired lat / lng coordinates
   Future<bool> updateCameraPosition(
