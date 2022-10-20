@@ -1,7 +1,10 @@
+## 0.3.5
+
+* return string instead of annotation class
+
 ## 0.3.4
 
 * iOS POI annotation click work
-
 
 ## 0.3.3
 
