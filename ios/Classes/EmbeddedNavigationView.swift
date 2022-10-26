@@ -135,6 +135,11 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         })
         navigationMapView.show(routes)
         navigationMapView.showWaypoints(on: currentRoute)
+        
+        self._distanceRemaining = currentRoute.distance
+        self._durationRemaining = currentRoute.expectedTravelTime
+        
+        self.sendEvent(eventType: MapBoxEventType.route_built)
     }
 
     public func view() -> UIView
@@ -214,6 +219,16 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             
             pointAnnotationManager?.delegate = self
             pointAnnotationManager?.annotations = pois
+            
+            mapView?.mapboxMap.onEvery(event: .cameraChanged, handler: { [weak self] _ in
+                guard let self = self else { return }
+                if((mapView?.cameraState.zoom)! < 7){
+                    pointAnnotationManager?.annotations = []
+                } else if ((mapView?.cameraState.zoom)! > 8){
+                    pointAnnotationManager?.annotations = self.pois
+                }
+            })
+            
             
             let initialLatitude = arguments?["initialLatitude"] as? Double ?? currentLocation?.coordinate.latitude
             let initialLongitude = arguments?["initialLongitude"] as? Double ?? currentLocation?.coordinate.longitude
@@ -574,7 +589,8 @@ extension FlutterMapboxNavigationView : UIGestureRecognizerDelegate {
     @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .ended else { return }
         let location = navigationMapView.mapView.mapboxMap.coordinate(for: gesture.location(in: navigationMapView.mapView))
-        requestRoute(destination: location)
+        //requestRoute(destination: location)
+        print(location)
     }
     
     func requestRoute(destination: CLLocationCoordinate2D) {
