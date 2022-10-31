@@ -1,3 +1,7 @@
+## 0.3.6
+
+* fix to allow route selection to change distance and duration vars in iOS
+
 ## 0.3.5
 
 * return string instead of annotation class
