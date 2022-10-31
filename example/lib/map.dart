@@ -64,6 +64,13 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
       }
       _locationData = await location.getLocation();
 
+      List<WayPoint> _pois = [];
+
+      _pois.add(
+          WayPoint(name: "HOME", latitude: 53.211025, longitude: -2.894550));
+      _pois.add(
+          WayPoint(name: "DEST", latitude: 53.156261, longitude: -3.060581));
+
       _directions = MapBoxNavigation(onRouteEvent: _onEmbeddedRouteEvent);
       var options = MapBoxOptions(
           initialLatitude: 36.1175275,
@@ -80,6 +87,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
           units: VoiceUnits.imperial,
           simulateRoute: false,
           longPressDestinationEnabled: true,
+          pois: _pois,
           mapStyleUrlDay: "mapbox://styles/mapbox/navigation-day-v1",
           mapStyleUrlNight: "mapbox://styles/mapbox/navigation-night-v1",
           language: "en");

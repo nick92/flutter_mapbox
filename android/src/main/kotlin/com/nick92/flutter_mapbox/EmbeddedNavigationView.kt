@@ -6,25 +6,20 @@ import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.BitmapFactory
+import android.graphics.drawable.Drawable
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.lifecycle.lifecycleScope
 import androidx.core.content.ContextCompat
-import com.nick92.flutter_mapbox.models.MapBoxEvents
-import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
-import com.nick92.flutter_mapbox.utilities.PluginUtilities
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.RouteOptions
-
 import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
 import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.mapboxsdk.style.expressions.Expression.*
 import com.mapbox.maps.*
-import com.mapbox.maps.extension.style.expressions.dsl.generated.interpolate
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.MapAnimationOptions
 import com.mapbox.maps.plugin.animation.camera
@@ -34,9 +29,7 @@ import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
-import com.mapbox.maps.plugin.locationcomponent.OnIndicatorPositionChangedListener
 import com.mapbox.maps.plugin.locationcomponent.location
-import com.mapbox.maps.plugin.locationcomponent.location2
 import com.mapbox.navigation.base.TimeFormat
 import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
@@ -73,12 +66,9 @@ import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineView
 import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
 import com.mapbox.navigation.ui.tripprogress.api.MapboxTripProgressApi
-import com.mapbox.navigation.ui.tripprogress.model.DistanceRemainingFormatter
-import com.mapbox.navigation.ui.tripprogress.model.EstimatedTimeToArrivalFormatter
-import com.mapbox.navigation.ui.tripprogress.model.PercentDistanceTraveledFormatter
-import com.mapbox.navigation.ui.tripprogress.model.TimeRemainingFormatter
-import com.mapbox.navigation.ui.tripprogress.model.TripProgressUpdateFormatter
+import com.mapbox.navigation.ui.tripprogress.model.*
 import com.mapbox.navigation.ui.tripprogress.view.MapboxTripProgressView
+import com.mapbox.navigation.ui.utils.internal.extensions.getBitmap
 import com.mapbox.navigation.ui.voice.api.MapboxSpeechApi
 import com.mapbox.navigation.ui.voice.api.MapboxVoiceInstructionsPlayer
 import com.mapbox.navigation.ui.voice.model.SpeechAnnouncement
@@ -86,13 +76,13 @@ import com.mapbox.navigation.ui.voice.model.SpeechError
 import com.mapbox.navigation.ui.voice.model.SpeechValue
 import com.mapbox.navigation.ui.voice.model.SpeechVolume
 import com.nick92.flutter_mapbox.databinding.MapActivityBinding
+import com.nick92.flutter_mapbox.models.MapBoxEvents
+import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
+import com.nick92.flutter_mapbox.utilities.PluginUtilities
 import com.nick92.flutter_mapbox.views.FullscreenNavigationLauncher
-
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import java.lang.Exception
-import java.lang.ref.WeakReference
 import java.util.*
 
 
@@ -233,7 +223,25 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         // load map style if set if not default
         mapboxMap.loadStyleUri(
             styleUrl
-        )
+        ) {
+            if(longPressDestinationEnabled)
+            {
+                // add long click listener that search for a route to the clicked destination
+                binding.mapView.gestures.addOnMapLongClickListener { point ->
+                    wayPoints.clear()
+
+                    val originLocation = navigationLocationProvider.lastLocation
+                    val originPoint = originLocation?.let {
+                        Point.fromLngLat(it.longitude, it.latitude)
+                    }
+                    wayPoints.add(originPoint!!)
+                    wayPoints.add(point)
+
+                    getRoute(context)
+                    true
+                }
+            }
+        }
 
         // initialize view interactions
         binding.stop.setOnClickListener {
@@ -259,7 +267,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         // initialize navigation trip observers
         registerObservers()
         mapboxNavigation.startTripSession(withForegroundService = false)
-        addAnnotationToMap()
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
@@ -316,7 +323,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         if (mapReady) {
             wayPoints.clear()
             val points = arguments?.get("wayPoints") as HashMap<*, *>
-            
+
             for (item in points)
             {
                 val point = item.value as HashMap<*, *>
@@ -325,18 +332,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 wayPoints.add(Point.fromLngLat(longitude, latitude))
             }
 
-//            val POIs = arguments?.get("poi") as HashMap<*, *>
-//
-//            for (item in POIs)
-//            {
-//                val poi = item.value as HashMap<*, *>
-//                var name = poi["Name"] as String
-//                val latitude = poi["Latitude"] as Double
-//                val longitude = poi["Longitude"] as Double
-//                //var pointAnnotation =
-//                //pois.add(PointAnnotation(geometry = Point.fromLngLat(longitude, latitude), id = 123, an))
-//            }
-            
             val height = arguments["maxHeight"] as? String
             val weight = arguments["maxWeight"] as? String
             val width = arguments["maxWidth"] as? String
@@ -383,14 +378,13 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             , object : NavigationRouterCallback {
                 override fun onRoutesReady(routes: List<NavigationRoute>,
                                            routerOrigin: RouterOrigin) {
-
                     if (routes.isEmpty()){
                         PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILD_NO_ROUTES_FOUND)
                         return
                     }
 
                     FlutterMapboxPlugin.currentRoute = routes[0]
-                    durationRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.duration()
+                    durationRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.durationTypical()
                     distanceRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.distance()
 
                     PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT)
@@ -420,13 +414,45 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             })
     }
 
+    private fun addPOIAnnotations(pois: HashMap<*, *>) {
+        val annotationApi = mapView?.annotations
+        val pointAnnotationManager = annotationApi.createPointAnnotationManager()
+
+        val parkingImage = ContextCompat.getDrawable(
+            context,
+            R.drawable.square_parking_solid__1_
+        )?.getBitmap()
+
+        var listOfPoints: MutableList<PointAnnotationOptions> = mutableListOf()
+
+        for (item in pois) {
+            val poi = item.value as HashMap<*, *>
+            var name = poi["Name"] as String
+            val latitude = poi["Latitude"] as Double
+            val longitude = poi["Longitude"] as Double
+
+            val pointAnnotationOptions = PointAnnotationOptions()
+                .withPoint(Point.fromLngLat(longitude, latitude))
+                .withIconImage(parkingImage!!)
+
+            pointAnnotationOptions.iconSize = 0.4
+            pointAnnotationOptions.textOffset = listOf(0.0, 2.0)
+            pointAnnotationOptions.textField = name
+            pointAnnotationOptions.textSize = 12.0
+
+            listOfPoints.add(pointAnnotationOptions)
+        }
+
+        // Add the resulting pointAnnotation to the map.
+        pointAnnotationManager.create(listOfPoints)
+    }
+
     private fun moveCameraToOriginOfRoute() {
         FlutterMapboxPlugin.currentRoute?.let {
             val originCoordinate = it.routeOptions?.coordinatesList()?.get(0)
             originCoordinate?.let {
                 val location = LatLng(originCoordinate.latitude(), originCoordinate.longitude())
                 updateCamera(location)
-                //addCustomMarker(location)
             }
         }
     }
@@ -640,6 +666,11 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         val longPress = arguments["longPressDestinationEnabled"] as? Boolean
         if(longPress != null)
             longPressDestinationEnabled = longPress
+
+        val poiPoints = arguments["poi"] as? HashMap<*, *>
+
+        if(poiPoints != null)
+            addPOIAnnotations(poiPoints)
     }
 
     open fun registerObservers() {
@@ -797,7 +828,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
     private val landscapeOverviewPadding: EdgeInsets by lazy {
         EdgeInsets(
-            30.0 * pixelDensity,
+            130.0 * pixelDensity,
             380.0 * pixelDensity,
             110.0 * pixelDensity,
             20.0 * pixelDensity
@@ -1108,24 +1139,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
         }
         false
-    }
-
-    private fun addAnnotationToMap() {
-        // Create an instance of the Annotation API and get the PointAnnotationManager.
-        val icon = BitmapFactory.decodeResource(
-            context.resources,
-            R.drawable.mapbox_marker_icon_default
-        )
-        val annotationApi = mapView?.annotations
-        val pointAnnotationManager = annotationApi.createPointAnnotationManager()
-
-        // Set options for the resulting symbol layer.
-        val pointAnnotationOptions: PointAnnotationOptions = PointAnnotationOptions()
-            .withPoint(Point.fromLngLat(-1.004689,52.231947))
-            .withIconImage(icon)
-
-        // Add the resulting pointAnnotation to the map.
-        pointAnnotationManager?.create(pointAnnotationOptions)
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {

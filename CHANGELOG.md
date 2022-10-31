@@ -1,3 +1,12 @@
+## 0.3.8
+
+* Remove red pin POI
+
+## 0.3.7
+* POI work for android
+* update android navigation view bar appearance
+* fix to allow route selection to change distance and duration vars in android
+
 ## 0.3.6
 
 * fix to allow route selection to change distance and duration vars in iOS
