@@ -24,6 +24,7 @@ import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.MapAnimationOptions
 import com.mapbox.maps.plugin.animation.camera
 import com.mapbox.maps.plugin.annotation.annotations
+import com.mapbox.maps.plugin.annotation.generated.OnPointAnnotationClickListener
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotation
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
@@ -301,6 +302,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             "getDurationRemaining" -> {
                 result.success(durationRemaining)
             }
+            "getSelectedAnnotation" -> {
+                result.success(selectedAnnotation)
+            }
             "reCenter" -> {
                 navigationCamera.requestNavigationCameraToOverview(
                     stateTransitionOptions = NavigationCameraTransitionOptions.Builder()
@@ -423,8 +427,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             R.drawable.square_parking_solid__1_
         )?.getBitmap()
 
-        var listOfPoints: MutableList<PointAnnotationOptions> = mutableListOf()
-
         for (item in pois) {
             val poi = item.value as HashMap<*, *>
             var name = poi["Name"] as String
@@ -436,13 +438,14 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .withIconImage(parkingImage!!)
 
             pointAnnotationOptions.iconSize = 0.4
-            pointAnnotationOptions.textOffset = listOf(0.0, 2.0)
+            pointAnnotationOptions.textOffset = listOf(0.0, 2.5)
             pointAnnotationOptions.textField = name
             pointAnnotationOptions.textSize = 12.0
 
             listOfPoints.add(pointAnnotationOptions)
         }
 
+        pointAnnotationManager.addClickListener(onPointAnnotationClickListener)
         // Add the resulting pointAnnotation to the map.
         pointAnnotationManager.create(listOfPoints)
     }
@@ -851,6 +854,10 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         )
     }
 
+    private var listOfPoints: MutableList<PointAnnotationOptions> = mutableListOf()
+
+    private lateinit var selectedAnnotation: PointAnnotation
+
     /**
      * Generates updates for the [MapboxManeuverView] to display the upcoming maneuver instructions
      * and remaining distance to the maneuver point.
@@ -1141,6 +1148,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         false
     }
 
+    private val onPointAnnotationClickListener = OnPointAnnotationClickListener { annotation ->
+        selectedAnnotation = annotation
+        PluginUtilities.sendEvent(MapBoxEvents.ANNOTATION_TAPPED)
+        false
+    }
+
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         TODO("Not yet implemented")
     }
@@ -1169,3 +1182,4 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         TODO("Not yet implemented")
     }
 }
+
