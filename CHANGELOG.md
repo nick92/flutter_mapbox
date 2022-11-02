@@ -1,3 +1,11 @@
+## 0.4.1
+
+* android select annotation to return string
+
+## 0.4.0
+
+* remove android POI zoom as was lagging map
+
 ## 0.3.9
 
 * android POI click work

@@ -443,7 +443,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             listOfPoints.add(pointAnnotationOptions)
         }
 
-        mapboxMap.addOnCameraChangeListener(onCameraChangeListener)
+//        mapboxMap.addOnCameraChangeListener(onCameraChangeListener)
 
         pointAnnotationManager.addClickListener(onPointAnnotationClickListener)
         // Add the resulting pointAnnotation to the map.
@@ -856,7 +856,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
     private var listOfPoints: MutableList<PointAnnotationOptions> = mutableListOf()
 
-    private lateinit var selectedAnnotation: PointAnnotation
+    private lateinit var selectedAnnotation: String
 
     private lateinit var pointAnnotationManager: PointAnnotationManager
 
@@ -1150,17 +1150,17 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         false
     }
 
-    private val onCameraChangeListener = OnCameraChangeListener {
-        if(mapboxMap.cameraState.zoom < 7) {
-            pointAnnotationManager.deleteAll()
-        } else if (mapboxMap.cameraState.zoom > 7) {
-            pointAnnotationManager.create(listOfPoints)
-        }
-        false
-    }
+//    private val onCameraChangeListener = OnCameraChangeListener {
+//        if(mapboxMap.cameraState.zoom < 7) {
+//            pointAnnotationManager.deleteAll()
+//        } else if (mapboxMap.cameraState.zoom > 7) {
+//            pointAnnotationManager.create(listOfPoints)
+//        }
+//        false
+//    }
 
     private val onPointAnnotationClickListener = OnPointAnnotationClickListener { annotation ->
-        selectedAnnotation = annotation
+        selectedAnnotation = annotation.textField!!
         PluginUtilities.sendEvent(MapBoxEvents.ANNOTATION_TAPPED)
         false
     }
