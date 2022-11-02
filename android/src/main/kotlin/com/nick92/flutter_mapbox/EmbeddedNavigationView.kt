@@ -24,10 +24,8 @@ import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.MapAnimationOptions
 import com.mapbox.maps.plugin.animation.camera
 import com.mapbox.maps.plugin.annotation.annotations
-import com.mapbox.maps.plugin.annotation.generated.OnPointAnnotationClickListener
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotation
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
-import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.*
+import com.mapbox.maps.plugin.delegates.listeners.OnCameraChangeListener
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.location
@@ -420,7 +418,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
     private fun addPOIAnnotations(pois: HashMap<*, *>) {
         val annotationApi = mapView?.annotations
-        val pointAnnotationManager = annotationApi.createPointAnnotationManager()
+        pointAnnotationManager = annotationApi.createPointAnnotationManager()
 
         val parkingImage = ContextCompat.getDrawable(
             context,
@@ -444,6 +442,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
             listOfPoints.add(pointAnnotationOptions)
         }
+
+        mapboxMap.addOnCameraChangeListener(onCameraChangeListener)
 
         pointAnnotationManager.addClickListener(onPointAnnotationClickListener)
         // Add the resulting pointAnnotation to the map.
@@ -858,6 +858,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
     private lateinit var selectedAnnotation: PointAnnotation
 
+    private lateinit var pointAnnotationManager: PointAnnotationManager
+
     /**
      * Generates updates for the [MapboxManeuverView] to display the upcoming maneuver instructions
      * and remaining distance to the maneuver point.
@@ -1144,6 +1146,15 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 mapboxNavigation.setNavigationRoutes(reOrderedRoutes)
                 PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT)
             }
+        }
+        false
+    }
+
+    private val onCameraChangeListener = OnCameraChangeListener {
+        if(mapboxMap.cameraState.zoom < 7) {
+            pointAnnotationManager.deleteAll()
+        } else if (mapboxMap.cameraState.zoom > 7) {
+            pointAnnotationManager.create(listOfPoints)
         }
         false
     }

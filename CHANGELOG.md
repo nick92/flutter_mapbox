@@ -1,3 +1,8 @@
+## 0.3.9
+
+* android POI click work
+* android POI hide on zoom out
+
 ## 0.3.8
 
 * Remove red pin POI
