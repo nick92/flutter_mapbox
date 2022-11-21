@@ -1,3 +1,11 @@
+## 0.4.4
+
+* exclude work change of type for iOS
+
+## 0.4.3
+
+* exclude work on trip planning for iOS and Android
+
 ## 0.4.2
 
 * fix anroid route builder to duration 

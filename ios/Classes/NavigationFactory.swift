@@ -33,6 +33,7 @@ public class NavigationFactory : NSObject, FlutterStreamHandler
     var _maxHeight: String?
     var _maxWeight: String?
     var _maxWidth: String?
+    var _avoid: [String]?
     var _alternatives: Bool = false
     var _enableRefresh: Bool = false
     var _zoom: Double = 14.0
