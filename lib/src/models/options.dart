@@ -83,6 +83,8 @@ class MapBoxOptions {
   /// No destination is required when set to true.
   final bool? enableFreeDriveMode;
 
+  final List<String>? avoid;
+
   MapBoxOptions(
       {this.initialLatitude,
       this.initialLongitude,
@@ -108,6 +110,7 @@ class MapBoxOptions {
       this.enableFreeDriveMode,
       this.padding,
       this.pois,
+      this.avoid,
       this.animateBuildRoute});
 
   Map<String, dynamic> toMap() {
@@ -159,6 +162,7 @@ class MapBoxOptions {
       optionsMap['allowsUTurnAtWayPoints'] = this.allowsUTurnAtWayPoints;
     if (this.enableRefresh != null)
       optionsMap['enableRefresh'] = this.enableRefresh;
+    if (this.avoid != null) optionsMap['avoid'] = this.avoid;
 
     addIfNonNull("voiceInstructionsEnabled", voiceInstructionsEnabled);
     addIfNonNull("bannerInstructionsEnabled", bannerInstructionsEnabled);

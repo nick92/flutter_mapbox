@@ -367,6 +367,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .applyLanguageAndVoiceUnitOptions(context)
                 .coordinatesList(wayPoints)
                 .waypointIndicesList(listOf(0, wayPoints.lastIndex))
+                .excludeList(excludeList)
                 .language(navigationLanguage)
                 .alternatives(alternatives)
                 .profile(navigationMode)
@@ -376,6 +377,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .continueStraight(!allowsUTurnAtWayPoints)
                 .voiceUnits(navigationVoiceUnits)
                 .annotations(DirectionsCriteria.ANNOTATION_DISTANCE)
+                .enableRefresh(true)
                 .build()
             , object : NavigationRouterCallback {
                 override fun onRoutesReady(routes: List<NavigationRoute>,
@@ -469,7 +471,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         binding.soundButton.visibility = View.INVISIBLE
         binding.maneuverView.visibility = View.INVISIBLE
         binding.routeOverview.visibility = View.INVISIBLE
-        binding.tripProgressCard.visibility = View.INVISIBLE
+        binding.tripProgressView.visibility = View.INVISIBLE
 
         PluginUtilities.sendEvent(MapBoxEvents.NAVIGATION_CANCELLED)
     }
@@ -483,7 +485,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         binding.soundButton.visibility = View.INVISIBLE
         binding.maneuverView.visibility = View.INVISIBLE
         binding.routeOverview.visibility = View.INVISIBLE
-        binding.tripProgressCard.visibility = View.INVISIBLE
+        binding.tripProgressView.visibility = View.INVISIBLE
 
         PluginUtilities.sendEvent(MapBoxEvents.NAVIGATION_CANCELLED)
 
@@ -524,7 +526,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             // show UI elements
              binding.soundButton.visibility = View.VISIBLE
              binding.routeOverview.visibility = View.VISIBLE
-             binding.tripProgressCard.visibility = View.VISIBLE
+             binding.tripProgressView.visibility = View.VISIBLE
 
             // move the camera to overview when new route is available
             navigationCamera.requestNavigationCameraToOverview()
@@ -556,7 +558,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         binding.soundButton.visibility = View.INVISIBLE
         binding.maneuverView.visibility = View.INVISIBLE
         binding.routeOverview.visibility = View.INVISIBLE
-        binding.tripProgressCard.visibility = View.INVISIBLE
+        binding.tripProgressView.visibility = View.INVISIBLE
 
     }
 
@@ -674,6 +676,11 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
         if(poiPoints != null)
             addPOIAnnotations(poiPoints)
+
+        var avoids = arguments["avoid"] as? List<String>
+
+        if(avoids != null && avoids.isNotEmpty())
+            excludeList = avoids
     }
 
     open fun registerObservers() {
@@ -751,6 +758,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     var maxHeight: Double? = null
     var maxWeight: Double? = null
     var maxWidth: Double? = null
+    var excludeList: List<String> = listOf()
 
     var originPoint: Point? = null
     var destinationPoint: Point? = null

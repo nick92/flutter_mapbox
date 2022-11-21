@@ -251,8 +251,6 @@ class FullscreenNavActivity : AppCompatActivity() {
             // mute/unmute voice instructions
             isVoiceInstructionsMuted = !isVoiceInstructionsMuted
         }
-
-        binding.soundButton.unmute()
     }
 
     override fun onStart() {
@@ -435,7 +433,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         // show UI elements
         binding.soundButton.visibility = View.VISIBLE
         binding.routeOverview.visibility = View.VISIBLE
-        binding.tripProgressCard.visibility = View.VISIBLE
+        binding.tripProgressView.visibility = View.VISIBLE
 
         mapboxNavigation.startTripSession()
     }
@@ -448,7 +446,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         // show UI elements
         binding.soundButton.visibility = View.VISIBLE
         binding.routeOverview.visibility = View.VISIBLE
-        binding.tripProgressCard.visibility = View.VISIBLE
+        binding.tripProgressView.visibility = View.VISIBLE
 
         mapboxNavigation.startTripSession()
     }
@@ -464,7 +462,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         binding.soundButton.visibility = View.INVISIBLE
         binding.maneuverView.visibility = View.INVISIBLE
         binding.routeOverview.visibility = View.INVISIBLE
-        binding.tripProgressCard.visibility = View.INVISIBLE
+        binding.tripProgressView.visibility = View.INVISIBLE
 
         // end the intent
         finish()

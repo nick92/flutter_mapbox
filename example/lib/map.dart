@@ -17,7 +17,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
       WayPoint(name: "Home", latitude: 53.211025, longitude: -2.894550);
 
   final _store =
-      WayPoint(name: "Padeswood", latitude: 53.156263, longitude: -3.060583);
+      WayPoint(name: "Dublin", latitude: 53.360229, longitude: -6.397916);
 
   MapBoxNavigation? _directions;
   MapBoxOptions? _options;
@@ -75,6 +75,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
       var options = MapBoxOptions(
           initialLatitude: 36.1175275,
           initialLongitude: -115.1839524,
+          avoid: ["motorway", "toll"],
           zoom: 13.0,
           tilt: 0.0,
           bearing: 0.0,
