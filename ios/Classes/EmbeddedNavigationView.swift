@@ -182,6 +182,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             _maxHeight = arguments?["maxHeight"] as? String
             _maxWeight = arguments?["maxWeight"] as? String
             _maxWidth = arguments?["maxWidth"] as? String
+            _avoid = arguments?["avoid"] as? NSString
 
             if(_mapStyleUrlDay != nil)
             {
@@ -363,6 +364,11 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         else 
         {
             items.append(URLQueryItem(name: "max_width", value: _maxWidth))
+        }
+        
+        if(_avoid != nil)
+        {
+            items.append(URLQueryItem(name: "exclude", value: _avoid))
         }
                 
         let routeOptions = NavigationRouteOptions(waypoints: _wayPoints, profileIdentifier: mode, queryItems: items)
@@ -630,6 +636,13 @@ extension FlutterMapboxNavigationView : UIGestureRecognizerDelegate {
         if(_maxWidth != nil)
         {
             items.append(URLQueryItem(name: "max_width", value: _maxWidth))
+        }
+        
+        let avoids = arguments?["avoid"] as? NSString
+        
+        if(avoids != nil)
+        {
+            items.append(URLQueryItem(name: "exclude", value: avoids))
         }
 
         let routeOptions = NavigationRouteOptions(waypoints: [userWaypoint, destinationWaypoint], profileIdentifier: mode, queryItems: items)
