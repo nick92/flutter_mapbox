@@ -386,7 +386,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                     }
 
                     FlutterMapboxPlugin.currentRoute = routes[0]
-                    durationRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.durationTypical()
+                    durationRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.duration()
                     distanceRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.distance()
 
                     PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT)

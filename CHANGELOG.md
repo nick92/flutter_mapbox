@@ -1,3 +1,7 @@
+## 0.4.2
+
+* fix anroid route builder to duration 
+
 ## 0.4.1
 
 * android select annotation to return string
