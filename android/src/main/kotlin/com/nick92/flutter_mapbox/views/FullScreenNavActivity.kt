@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.util.Log
 import android.util.Log.VERBOSE
 import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -69,6 +70,7 @@ import com.mapbox.navigation.ui.voice.model.SpeechValue
 import com.mapbox.navigation.ui.voice.model.SpeechVolume
 import com.nick92.flutter_mapbox.R
 import com.nick92.flutter_mapbox.databinding.MapActivityBinding
+import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
 import com.nick92.flutter_mapbox.utilities.PluginUtilities.Companion.sendEvent
 import java.util.*
@@ -279,6 +281,9 @@ class FullscreenNavActivity : AppCompatActivity() {
             mapboxReplayer.playFirstLocation()
         }
 
+        // stop screen from turning off when navigating
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         // if current route is set then use it, if not then query route
         if(FlutterMapboxPlugin.currentRoute != null){
             setRouteAndStartNavigation(FlutterMapboxPlugin.currentRoute!!)
@@ -300,13 +305,17 @@ class FullscreenNavActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        MapboxNavigationProvider.destroy()
+        //MapboxNavigationProvider.destroy()
         mapboxReplayer.finish()
         maneuverApi.cancel()
         routeLineApi.cancel()
         routeLineView.cancel()
         speechApi.cancel()
         voiceInstructionsPlayer.shutdown()
+
+        // allow screen to turn off again when complete
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        sendEvent(MapBoxEvents.NAVIGATION_FINISHED)
     }
 
     private fun findRoute(destination: Point) {
@@ -436,6 +445,8 @@ class FullscreenNavActivity : AppCompatActivity() {
         binding.tripProgressView.visibility = View.VISIBLE
 
         mapboxNavigation.startTripSession()
+
+        sendEvent(MapBoxEvents.NAVIGATION_RUNNING)
     }
 
     private fun setRouteAndStartNavigation(route: NavigationRoute) {
@@ -449,6 +460,8 @@ class FullscreenNavActivity : AppCompatActivity() {
         binding.tripProgressView.visibility = View.VISIBLE
 
         mapboxNavigation.startTripSession()
+
+        sendEvent(MapBoxEvents.NAVIGATION_RUNNING)
     }
 
     private fun clearRouteAndStopNavigation() {
@@ -463,6 +476,8 @@ class FullscreenNavActivity : AppCompatActivity() {
         binding.maneuverView.visibility = View.INVISIBLE
         binding.routeOverview.visibility = View.INVISIBLE
         binding.tripProgressView.visibility = View.INVISIBLE
+
+        sendEvent(MapBoxEvents.NAVIGATION_CANCELLED)
 
         // end the intent
         finish()

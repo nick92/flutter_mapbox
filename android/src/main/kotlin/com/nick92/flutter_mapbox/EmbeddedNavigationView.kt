@@ -445,7 +445,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             listOfPoints.add(pointAnnotationOptions)
         }
 
-//        mapboxMap.addOnCameraChangeListener(onCameraChangeListener)
+        mapboxMap.addOnCameraChangeListener(onCameraChangeListener)
 
         pointAnnotationManager.addClickListener(onPointAnnotationClickListener)
         // Add the resulting pointAnnotation to the map.
@@ -472,8 +472,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         binding.maneuverView.visibility = View.INVISIBLE
         binding.routeOverview.visibility = View.INVISIBLE
         binding.tripProgressView.visibility = View.INVISIBLE
-
-        PluginUtilities.sendEvent(MapBoxEvents.NAVIGATION_CANCELLED)
     }
 
     private fun clearRouteAndStopNavigation() {
@@ -1158,14 +1156,14 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         false
     }
 
-//    private val onCameraChangeListener = OnCameraChangeListener {
-//        if(mapboxMap.cameraState.zoom < 7) {
-//            pointAnnotationManager.deleteAll()
-//        } else if (mapboxMap.cameraState.zoom > 7) {
-//            pointAnnotationManager.create(listOfPoints)
-//        }
-//        false
-//    }
+    private val onCameraChangeListener = OnCameraChangeListener {
+        if(mapboxMap.cameraState.zoom < 7 && pointAnnotationManager.annotations.isNotEmpty()) {
+            pointAnnotationManager.deleteAll()
+        } else if (mapboxMap.cameraState.zoom > 7 && pointAnnotationManager.annotations.isEmpty()) {
+            pointAnnotationManager.create(listOfPoints)
+        }
+        false
+    }
 
     private val onPointAnnotationClickListener = OnPointAnnotationClickListener { annotation ->
         selectedAnnotation = annotation.textField!!

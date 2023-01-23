@@ -1,3 +1,17 @@
+## 0.4.7
+
+* fix for navigation end loop cycle bug
+
+## 0.4.6
+
+* android hide annotations on zoon out work
+* android keep screen alive on navigation 
+* android add events into full screen nav
+
+## 0.4.5
+
+* remove MapboxNavigationProvider on detory 
+
 ## 0.4.4
 
 * exclude work change of type for iOS

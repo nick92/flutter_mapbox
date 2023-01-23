@@ -225,9 +225,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 guard let self = self else { return }
                 if((mapView?.cameraState.zoom)! < 7){
                     pointAnnotationManager?.annotations = []
-                } else if ((mapView?.cameraState.zoom)! > 8){
+                } else if ((mapView?.cameraState.zoom)! > 7){
                     pointAnnotationManager?.annotations = self.pois
-                }
+                } 
             })
             
             
@@ -278,7 +278,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         _durationRemaining = 0
         
         routeResponse = nil
-        sendEvent(eventType: MapBoxEventType.navigation_cancelled)
         result(true)
     }
 
