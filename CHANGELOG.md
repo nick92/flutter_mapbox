@@ -1,3 +1,7 @@
+## 0.4.8
+
+* navigation view changes for android
+
 ## 0.4.7
 
 * fix for navigation end loop cycle bug

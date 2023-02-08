@@ -367,14 +367,14 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .applyLanguageAndVoiceUnitOptions(context)
                 .coordinatesList(wayPoints)
                 .waypointIndicesList(listOf(0, wayPoints.lastIndex))
-                .excludeList(excludeList)
+//                .excludeList(excludeList)
                 .language(navigationLanguage)
                 .alternatives(alternatives)
                 .profile(navigationMode)
-                .maxHeight(maxHeight)
-                .maxWidth(maxWidth)
-                .maxWeight(maxWeight)
-                .continueStraight(!allowsUTurnAtWayPoints)
+//                .maxHeight(maxHeight)
+//                .maxWidth(maxWidth)
+//                .maxWeight(maxWeight)
+//                .continueStraight(!allowsUTurnAtWayPoints)
                 .voiceUnits(navigationVoiceUnits)
                 .annotations(DirectionsCriteria.ANNOTATION_DISTANCE)
                 .enableRefresh(true)
@@ -466,24 +466,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         mapboxNavigation.setNavigationRoutes(listOf())
         // stop simulation
         mapboxReplayer.stop()
-
-        // hide UI elements
-        binding.soundButton.visibility = View.INVISIBLE
-        binding.maneuverView.visibility = View.INVISIBLE
-        binding.routeOverview.visibility = View.INVISIBLE
-        binding.tripProgressView.visibility = View.INVISIBLE
     }
 
     private fun clearRouteAndStopNavigation() {
         mapboxNavigation.setNavigationRoutes(listOf())
         // stop simulation
         mapboxReplayer.stop()
-
-        // hide UI elements
-        binding.soundButton.visibility = View.INVISIBLE
-        binding.maneuverView.visibility = View.INVISIBLE
-        binding.routeOverview.visibility = View.INVISIBLE
-        binding.tripProgressView.visibility = View.INVISIBLE
 
         PluginUtilities.sendEvent(MapBoxEvents.NAVIGATION_CANCELLED)
 
@@ -551,13 +539,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             mapboxReplayer.stop()
 
         mapboxNavigation.stopTripSession()
-
-        // hide UI elements
-        binding.soundButton.visibility = View.INVISIBLE
-        binding.maneuverView.visibility = View.INVISIBLE
-        binding.routeOverview.visibility = View.INVISIBLE
-        binding.tripProgressView.visibility = View.INVISIBLE
-
     }
 
     private fun updateCamera(methodCall: MethodCall, result: MethodChannel.Result) {

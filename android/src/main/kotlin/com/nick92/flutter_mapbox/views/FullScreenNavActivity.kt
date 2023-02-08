@@ -284,6 +284,8 @@ class FullscreenNavActivity : AppCompatActivity() {
         // stop screen from turning off when navigating
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        binding.soundButton.unmute()
+
         // if current route is set then use it, if not then query route
         if(FlutterMapboxPlugin.currentRoute != null){
             setRouteAndStartNavigation(FlutterMapboxPlugin.currentRoute!!)
