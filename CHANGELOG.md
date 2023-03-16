@@ -1,3 +1,8 @@
+## 0.4.9
+
+* fix mapbox navigation version
+
+
 ## 0.4.8
 
 * navigation view changes for android

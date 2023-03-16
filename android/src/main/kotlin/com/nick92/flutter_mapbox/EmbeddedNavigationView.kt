@@ -13,6 +13,8 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.marginEnd
+import androidx.core.view.marginTop
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.bindgen.Expected
@@ -56,6 +58,8 @@ import com.mapbox.navigation.ui.maps.camera.data.MapboxNavigationViewportDataSou
 import com.mapbox.navigation.ui.maps.camera.lifecycle.NavigationBasicGesturesHandler
 import com.mapbox.navigation.ui.maps.camera.state.NavigationCameraState
 import com.mapbox.navigation.ui.maps.camera.transition.NavigationCameraTransitionOptions
+import com.mapbox.navigation.ui.maps.camera.view.MapboxRecenterButton
+import com.mapbox.navigation.ui.maps.camera.view.MapboxRouteOverviewButton
 import com.mapbox.navigation.ui.maps.location.NavigationLocationProvider
 import com.mapbox.navigation.ui.maps.route.arrow.api.MapboxRouteArrowApi
 import com.mapbox.navigation.ui.maps.route.arrow.api.MapboxRouteArrowView
@@ -74,6 +78,7 @@ import com.mapbox.navigation.ui.voice.model.SpeechAnnouncement
 import com.mapbox.navigation.ui.voice.model.SpeechError
 import com.mapbox.navigation.ui.voice.model.SpeechValue
 import com.mapbox.navigation.ui.voice.model.SpeechVolume
+import com.mapbox.navigation.ui.voice.view.MapboxSoundButton
 import com.nick92.flutter_mapbox.databinding.MapActivityBinding
 import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
@@ -246,21 +251,27 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         binding.stop.setOnClickListener {
             clearRouteAndStopNavigation()
         }
-        binding.recenter.setOnClickListener {
+
+        recenterButton = MapboxRecenterButton(context)
+        overviewButton = MapboxRouteOverviewButton(context)
+        soundButton = MapboxSoundButton(context)
+
+        recenterButton.setOnClickListener {
             navigationCamera.requestNavigationCameraToFollowing()
             binding.routeOverview.showTextAndExtend(BUTTON_ANIMATION_DURATION)
         }
-        binding.routeOverview.setOnClickListener {
+        overviewButton.setOnClickListener {
             navigationCamera.requestNavigationCameraToOverview()
             binding.recenter.showTextAndExtend(BUTTON_ANIMATION_DURATION)
         }
-        binding.soundButton.setOnClickListener {
+        soundButton.setOnClickListener {
             // mute/unmute voice instructions
             isVoiceInstructionsMuted = !isVoiceInstructionsMuted
         }
 
         // set initial sounds button state
-        binding.soundButton.mute()
+        soundButton.mute()
+        isVoiceInstructionsMuted = true
 
         mapView.gestures.addOnMapClickListener(mapClickListener)
         // initialize navigation trip observers
@@ -359,7 +370,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         }
 
         PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILDING)
-        mapboxNavigation.stopTripSession()
 
         mapboxNavigation.requestRoutes(
             RouteOptions.builder()
@@ -367,14 +377,14 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .applyLanguageAndVoiceUnitOptions(context)
                 .coordinatesList(wayPoints)
                 .waypointIndicesList(listOf(0, wayPoints.lastIndex))
-//                .excludeList(excludeList)
+                .excludeList(excludeList)
                 .language(navigationLanguage)
                 .alternatives(alternatives)
                 .profile(navigationMode)
-//                .maxHeight(maxHeight)
-//                .maxWidth(maxWidth)
-//                .maxWeight(maxWeight)
-//                .continueStraight(!allowsUTurnAtWayPoints)
+                .maxHeight(maxHeight)
+                .maxWidth(maxWidth)
+                .maxWeight(maxWeight)
+                .continueStraight(!allowsUTurnAtWayPoints)
                 .voiceUnits(navigationVoiceUnits)
                 .annotations(DirectionsCriteria.ANNOTATION_DISTANCE)
                 .enableRefresh(true)
@@ -510,12 +520,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
             mapboxNavigation.startTripSession()
             // show UI elements
-             binding.soundButton.visibility = View.VISIBLE
-             binding.routeOverview.visibility = View.VISIBLE
-             binding.tripProgressView.visibility = View.VISIBLE
+            binding.soundButton.visibility = View.VISIBLE
+            binding.routeOverview.visibility = View.VISIBLE
+            binding.tripProgressView.visibility = View.VISIBLE
 
             // move the camera to overview when new route is available
-            navigationCamera.requestNavigationCameraToOverview()
+            navigationCamera.requestNavigationCameraToFollowing()
             isNavigationInProgress = true
             PluginUtilities.sendEvent(MapBoxEvents.NAVIGATION_RUNNING)
         }
@@ -785,6 +795,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
      * You need to get a new reference to this object whenever the [MapView] is recreated.
      */
     private lateinit var mapboxMap: MapboxMap
+
+    private lateinit var soundButton: MapboxSoundButton
+
+    private lateinit var overviewButton: MapboxRouteOverviewButton
+
+    private lateinit var recenterButton: MapboxRecenterButton
 
     /**
      * Mapbox Navigation entry point. There should only be one instance of this object for the app.

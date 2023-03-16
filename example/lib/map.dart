@@ -17,7 +17,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
       WayPoint(name: "Home", latitude: 53.211025, longitude: -2.894550);
 
   final _store =
-      WayPoint(name: "Dublin", latitude: 53.360229, longitude: -6.397916);
+      WayPoint(name: "Padeswood", latitude: 53.156514, longitude: -3.060052);
 
   MapBoxNavigation? _directions;
   MapBoxOptions? _options;
@@ -138,6 +138,11 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                                 if (_routeBuilt) {
                                   _controller!.clearRoute();
                                 } else {
+                                  var _options = MapBoxOptions(
+                                      maxHeight: "5.0",
+                                      maxWeight: "50",
+                                      maxWidth: "2");
+
                                   var wayPoints = <WayPoint>[];
                                   wayPoints.add(_home);
                                   wayPoints.add(_store);
@@ -157,7 +162,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                           child: Text("Start "),
                           onPressed: !_isNavigating
                               ? () {
-                                  _controller!.startFullScreenNavigation();
+                                  _controller!.startNavigation();
                                 }
                               : null,
                         ),
