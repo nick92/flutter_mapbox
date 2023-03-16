@@ -1,5 +1,11 @@
 ## 0.4.9
 
+* add in mute option
+* fix for routing vars
+
+
+## 0.4.9
+
 * fix mapbox navigation version
 
 
