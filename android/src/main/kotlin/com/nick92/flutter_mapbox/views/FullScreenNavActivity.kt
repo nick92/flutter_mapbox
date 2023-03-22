@@ -21,8 +21,10 @@ import com.mapbox.geojson.Point
 import com.mapbox.maps.*
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.camera
+import com.mapbox.maps.plugin.compass.compass
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.maps.plugin.scalebar.scalebar
 import com.mapbox.navigation.base.TimeFormat
 import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
@@ -90,6 +92,9 @@ class FullscreenNavActivity : AppCompatActivity() {
         setContentView(binding.root)
         accessToken = PluginUtilities.getResourceFromContext(this.applicationContext, "mapbox_access_token")
         mapboxMap = binding.mapView.getMapboxMap()
+
+        binding.mapView.compass.enabled = false
+        binding.mapView.scalebar.enabled = false
 
         receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {

@@ -27,10 +27,12 @@ import com.mapbox.maps.plugin.animation.MapAnimationOptions
 import com.mapbox.maps.plugin.animation.camera
 import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.*
+import com.mapbox.maps.plugin.compass.compass
 import com.mapbox.maps.plugin.delegates.listeners.OnCameraChangeListener
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.location
+import com.mapbox.maps.plugin.scalebar.scalebar
 import com.mapbox.navigation.base.TimeFormat
 import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
@@ -101,6 +103,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     open fun initNavigation(mv: MapView, arguments: Map<*, *>) {
         mapView = mv
         mapboxMap = mapView.getMapboxMap()
+
+        mapView.compass.visibility = false
+        mapView.scalebar.enabled = false
 
         if(arguments != null)
             setOptions(arguments)

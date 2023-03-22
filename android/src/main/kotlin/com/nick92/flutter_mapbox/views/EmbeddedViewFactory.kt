@@ -12,10 +12,10 @@ import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
 
 class EmbeddedViewFactory(private val messenger: BinaryMessenger, private val activity: Activity) : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
-    override fun create(context: Context?, viewId: Int, args: Any?): PlatformView {
+    override fun create(context: Context, viewId: Int, args: Any?): PlatformView {
         val binding = MapActivityBinding.inflate(this.activity.layoutInflater)
-        val accessToken = PluginUtilities.getResourceFromContext( context!!,"mapbox_access_token")
-        Mapbox.getInstance(context!!, accessToken)
-        return EmbeddedView(context!!, activity, binding, messenger, viewId, args, accessToken)
+        val accessToken = PluginUtilities.getResourceFromContext(context,"mapbox_access_token")
+        Mapbox.getInstance(context, accessToken)
+        return EmbeddedView(context, activity, binding, messenger, viewId, args, accessToken)
     }
 }

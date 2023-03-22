@@ -33,9 +33,9 @@ class EmbeddedView(context: Context, activity: Activity, binding: MapActivityBin
     }
 
     override fun initFlutterChannelHandlers() {
+        super.initFlutterChannelHandlers()
         methodChannel = MethodChannel(messenger, "flutter_mapbox/${viewId}")
         eventChannel = EventChannel(messenger, "flutter_mapbox/${viewId}/events")
-        super.initFlutterChannelHandlers()
     }
 
     override fun getView(): View {
