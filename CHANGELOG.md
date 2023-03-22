@@ -1,4 +1,10 @@
-## 0.4.9
+## 0.5.1
+
+* update to android v33 complie 
+* hide compass and scale elements
+
+
+## 0.5.0
 
 * add in mute option
 * fix for routing vars
