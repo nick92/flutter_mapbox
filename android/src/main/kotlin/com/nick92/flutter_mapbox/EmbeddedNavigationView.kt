@@ -20,7 +20,6 @@ import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
 import com.mapbox.mapboxsdk.geometry.LatLng
-import com.mapbox.mapboxsdk.style.expressions.Expression.*
 import com.mapbox.maps.*
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.MapAnimationOptions
@@ -107,8 +106,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         mapView.compass.visibility = false
         mapView.scalebar.enabled = false
 
-        if(arguments != null)
-            setOptions(arguments)
+        setOptions(arguments)
 
         // initialize the location puck
         mapView.location.apply {
@@ -217,8 +215,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         // the value of this option will depend on the style that you are using
         // and under which layer the route line should be placed on the map layers stack
         val mapboxRouteLineOptions = MapboxRouteLineOptions.Builder(activity)
-            .withRouteLineBelowLayerId("road-label-navigation")
-            .withVanishingRouteLineEnabled(true)
+            .withRouteLineBelowLayerId("road-label")
             .build()
         routeLineApi = MapboxRouteLineApi(mapboxRouteLineOptions)
         routeLineView = MapboxRouteLineView(mapboxRouteLineOptions)

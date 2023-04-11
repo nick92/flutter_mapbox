@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.annotation.NonNull
+import androidx.lifecycle.Lifecycle
 import com.nick92.flutter_mapbox.views.EmbeddedViewFactory
 
 import com.mapbox.api.directions.v5.DirectionsCriteria
@@ -18,6 +19,7 @@ import com.nick92.flutter_mapbox.views.FullscreenNavigationLauncher
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -34,8 +36,9 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
   private lateinit var progressEventChannel: EventChannel
   private var currentActivity: Activity? = null
   private lateinit var currentContext: Context
+  private var lifecycle: Lifecycle? = null
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+  override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     val messenger = flutterPluginBinding.binaryMessenger
     channel = MethodChannel(messenger, "flutter_mapbox")
     channel.setMethodCallHandler(this)
@@ -208,6 +211,7 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
   override fun onDetachedFromActivity() {
     currentActivity!!.finish()
     currentActivity = null
+    lifecycle = null
   }
 
   override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
@@ -215,13 +219,14 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+    lifecycle = FlutterLifecycleAdapter.getActivityLifecycle(binding)
     currentActivity = binding.activity
     currentContext = binding.activity.applicationContext
 
-    if (platformViewRegistry != null && binaryMessenger != null && currentActivity != null) {
+    if (platformViewRegistry != null && binaryMessenger != null && currentActivity != null && lifecycle != null) {
       platformViewRegistry?.registerViewFactory(
         view_name,
-        EmbeddedViewFactory(binaryMessenger!!, currentActivity!!)
+        EmbeddedViewFactory(binaryMessenger!!, currentActivity!!, lifecycle!!)
       )
     }
   }
@@ -230,30 +235,8 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
     //To change body of created functions use File | Settings | File Templates.
   }
 
-  fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-    when (requestCode) {
-      367 -> {
-
-        for (permission in permissions) {
-          if (permission == Manifest.permission.ACCESS_FINE_LOCATION) {
-            val haspermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-              currentActivity?.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-            } else {
-              TODO("VERSION.SDK_INT < M")
-            }
-            if (haspermission == PackageManager.PERMISSION_GRANTED) {
-              if (wayPoints.count() > 0)
-                beginNavigation(wayPoints)
-            }
-            // Not all permissions granted. Show some message and return.
-            return
-          }
-        }
-
-        // All permissions are granted. Do the work accordingly.
-      }
-    }
-//    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+  interface LifecycleProvider {
+    fun getLifecycle(): Lifecycle?
   }
 
 }

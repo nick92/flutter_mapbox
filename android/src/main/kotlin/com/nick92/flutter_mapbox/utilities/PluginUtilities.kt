@@ -9,7 +9,7 @@ import com.nick92.flutter_mapbox.FlutterMapboxPlugin
 import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.google.gson.Gson
-import com.mapbox.mapboxsdk.geometry.LatLng
+//import com.mapbox.mapboxsdk.geometry.LatLng
 import io.flutter.plugin.common.MethodCall
 import java.io.ByteArrayInputStream
 import java.io.InputStream
@@ -26,15 +26,15 @@ class PluginUtilities {
             return context.getString(stringRes)
         }
 
-        fun getRandomLatLng(bbox: DoubleArray): LatLng {
-            val random = Random()
-
-            val randomLat: Double = bbox.get(1) + (bbox.get(3) - bbox.get(1)) * random.nextDouble()
-            val randomLon: Double = bbox.get(0) + (bbox.get(2) - bbox.get(0)) * random.nextDouble()
-
-            val latLng = LatLng(randomLat, randomLon)
-            return latLng
-        }
+//        fun getRandomLatLng(bbox: DoubleArray): LatLng {
+//            val random = Random()
+//
+//            val randomLat: Double = bbox.get(1) + (bbox.get(3) - bbox.get(1)) * random.nextDouble()
+//            val randomLon: Double = bbox.get(0) + (bbox.get(2) - bbox.get(0)) * random.nextDouble()
+//
+//            val latLng = LatLng(randomLat, randomLon)
+//            return latLng
+//        }
 
         fun sendEvent(event: MapBoxRouteProgressEvent) {
             val dataString = Gson().toJson(event)
