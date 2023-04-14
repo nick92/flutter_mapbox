@@ -725,7 +725,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
     val wayPoints: MutableList<Point> = mutableListOf()
     val pois: MutableList<PointAnnotation> = mutableListOf()
-    var navigationMode =  DirectionsCriteria.PROFILE_DRIVING
+    var navigationMode =  DirectionsCriteria.PROFILE_DRIVING_TRAFFIC
     var simulateRoute = false
     var mapStyleUrlDay: String? = null
     var mapStyleUrlNight: String? = null
