@@ -1,3 +1,8 @@
+## 0.5.3
+
+* update to Mapbox Navigation in Android v 2.11.0 
+* update to Mapbox Navigation in iOS v 2.12
+
 ## 0.5.1
 
 * update to android v33 complie 
