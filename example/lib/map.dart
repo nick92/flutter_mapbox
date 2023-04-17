@@ -14,10 +14,12 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
   String? _instruction = "";
 
   final _home =
-      WayPoint(name: "Home", latitude: 53.211025, longitude: -2.894550);
+      WayPoint(name: "Home", latitude: 53.2110237, longitude: -2.8944236);
 
   final _store =
-      WayPoint(name: "Padeswood", latitude: 53.156514, longitude: -3.060052);
+      WayPoint(name: "Padeswood", latitude: 53.156082, longitude: -3.063002);
+
+// -2.8944236,53.2110237;-3.0580621,53.1568208
 
   MapBoxNavigation? _directions;
   MapBoxOptions? _options;
@@ -27,6 +29,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
   MapBoxNavigationViewController? _controller;
   bool _routeBuilt = false;
   bool _isNavigating = false;
+  dynamic prevEvent;
 
   @override
   void initState() {
@@ -69,13 +72,13 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
       _pois.add(
           WayPoint(name: "HOME", latitude: 53.211025, longitude: -2.894550));
       _pois.add(
-          WayPoint(name: "DEST", latitude: 53.156261, longitude: -3.060581));
+          WayPoint(name: "DEST", latitude: 53.156082, longitude: -3.063002));
 
       _directions = MapBoxNavigation(onRouteEvent: _onEmbeddedRouteEvent);
       var options = MapBoxOptions(
           initialLatitude: 36.1175275,
           initialLongitude: -115.1839524,
-          avoid: ["motorway", "toll"],
+          // avoid: ["motorway", "toll"],
           zoom: 13.0,
           tilt: 0.0,
           bearing: 0.0,
@@ -138,17 +141,24 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                                 if (_routeBuilt) {
                                   _controller!.clearRoute();
                                 } else {
-                                  var _options = MapBoxOptions(
+                                  List<String> avoids = [];
+
+                                  var lat = "53.157863";
+                                  var lon = "-3.055103";
+                                  avoids.add("point($lon $lat)");
+
+                                  var options = MapBoxOptions(
+                                      avoid: avoids,
                                       maxHeight: "5.0",
-                                      maxWeight: "50",
-                                      maxWidth: "2");
+                                      maxWeight: "2.5",
+                                      maxWidth: "1.9");
 
                                   var wayPoints = <WayPoint>[];
                                   wayPoints.add(_home);
                                   wayPoints.add(_store);
                                   _isMultipleStop = wayPoints.length > 2;
                                   _controller!.buildRoute(
-                                      wayPoints: wayPoints, options: _options);
+                                      wayPoints: wayPoints, options: options);
                                 }
                               },
                       ),
@@ -259,6 +269,13 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
   Future<void> _onEmbeddedRouteEvent(e) async {
     // _distanceRemaining = await _controller!.distanceRemaining;
     // _durationRemaining = await _controller!.durationRemaining;
+    print(e.eventType);
+
+    if (prevEvent == null) {
+      prevEvent = e.eventType;
+    } else if (prevEvent == e.eventType) {
+      return;
+    }
 
     switch (e.eventType) {
       case MapBoxEvent.annotation_tapped:
@@ -302,6 +319,8 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
       default:
         break;
     }
-    setState(() {});
+    setState(() {
+      prevEvent = e.eventType;
+    });
   }
 }
