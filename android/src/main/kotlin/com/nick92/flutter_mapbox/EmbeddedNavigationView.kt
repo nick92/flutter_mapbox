@@ -358,6 +358,11 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             if(width != null)
                 maxWidth = width.toDouble()
 
+            var avoids = arguments["avoid"] as? List<String>
+
+            if(avoids != null && avoids.isNotEmpty())
+                excludeList = avoids
+
             getRoute(context)
             result.success(true)
         } else {
@@ -383,9 +388,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .language(navigationLanguage)
                 .alternatives(alternatives)
                 .profile(navigationMode)
-                .maxHeight(maxHeight)
-                .maxWidth(maxWidth)
-                .maxWeight(maxWeight)
+                // .maxHeight(maxHeight)
+                // .maxWidth(maxWidth)
+                // .maxWeight(maxWeight)
                 .continueStraight(!allowsUTurnAtWayPoints)
                 .voiceUnits(navigationVoiceUnits)
                 .annotations(DirectionsCriteria.ANNOTATION_DISTANCE)
