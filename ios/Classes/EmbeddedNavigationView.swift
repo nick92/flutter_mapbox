@@ -179,14 +179,30 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             _pitch = arguments?["tilt"] as? Double ?? _pitch
             _animateBuildRoute = arguments?["animateBuildRoute"] as? Bool ?? _animateBuildRoute
             _longPressDestinationEnabled = arguments?["longPressDestinationEnabled"] as? Bool ?? _longPressDestinationEnabled
-            _maxHeight = arguments?["maxHeight"] as? String
-            _maxWeight = arguments?["maxWeight"] as? String
-            _maxWidth = arguments?["maxWidth"] as? String
             _avoid = arguments?["avoid"] as? [String]
 
             if(_mapStyleUrlDay != nil)
             {
                 navigationMapView.mapView.mapboxMap.style.uri = StyleURI.init(url: URL(string: _mapStyleUrlDay!)!)
+            }
+            
+            let maxHeight = arguments?["maxHeight"] as? String
+            let maxWeight = arguments?["maxWeight"] as? String
+            let maxWidth = arguments?["maxWidth"] as? String
+            
+            if(maxHeight != nil)
+            {
+                _maxHeight = Double(maxHeight!)!
+            }
+            
+            if(maxWidth != nil)
+            {
+                _maxWidth = Double(maxWidth!)!
+            }
+            
+            if(maxWeight != nil)
+            {
+                _maxWeight = Double(maxWeight!)!
             }
 
             var currentLocation: CLLocation!
@@ -338,45 +354,44 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         let maxWeight = arguments?["maxWeight"] as? String
         let maxWidth = arguments?["maxWidth"] as? String
 
-        var items = [URLQueryItem]();
-        
-        if(maxHeight != nil)
-        {
-            items.append(URLQueryItem(name: "max_height", value: maxHeight))
-        }
-        else 
-        {
-            items.append(URLQueryItem(name: "max_height", value: _maxHeight))
-        }
-        if(maxWeight != nil)
-        {
-            items.append(URLQueryItem(name: "max_weight", value: maxWeight))
-        }
-        else 
-        {
-            items.append(URLQueryItem(name: "max_weight", value: _maxWeight))
-        }
-        if(maxWidth != nil)
-        {
-            items.append(URLQueryItem(name: "max_width", value: maxWidth))
-        } 
-        else 
-        {
-            items.append(URLQueryItem(name: "max_width", value: _maxWidth))
-        }
+        let items = [URLQueryItem]();
+                
+        let routeOptions = UnscrambledRouteOptions(waypoints: _wayPoints, profileIdentifier: mode, queryItems: items)
         
         let avoid = arguments?["avoid"] as? [String]
         
         if(avoid != nil)
         {
-            items.append(URLQueryItem(name: "exclude", value: avoid!.joined(separator:",")))
+            routeOptions.setExcludes(array: avoid!)
         }
-        else if(_avoid != nil)
+        else
         {
-            items.append(URLQueryItem(name: "exclude", value: _avoid!.joined(separator:",")))
+            routeOptions.setExcludes(array: _avoid!)
         }
-                
-        let routeOptions = NavigationRouteOptions(waypoints: _wayPoints, profileIdentifier: mode, queryItems: items)
+        
+        var max_height = _maxHeight
+        var max_width = _maxWidth
+        var max_weight = _maxWeight
+        
+        if(maxHeight != nil)
+        {
+            max_height = Double(maxHeight!)!
+        }
+        
+        if(maxWidth != nil)
+        {
+            max_width = Double(maxWidth!)!
+        }
+        
+        if(maxWeight != nil)
+        {
+            max_weight = Double(maxWeight!)!
+        }
+        
+        routeOptions.maximumHeight = Measurement(value: max_height, unit: .meters)
+        routeOptions.maximumWidth = Measurement(value: max_width, unit: .meters)
+        routeOptions.maximumWeight = Measurement(value: max_weight, unit: .kilograms)
+        routeOptions.includesTollPrices = true
 
         if (_allowsUTurnAtWayPoints != nil)
         {
@@ -385,7 +400,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         
         routeOptions.refreshingEnabled = _enableRefresh
         routeOptions.includesAlternativeRoutes = _alternatives
-
         routeOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
         routeOptions.locale = Locale(identifier: _language)
         self.routeOptions = routeOptions
@@ -628,27 +642,18 @@ extension FlutterMapboxNavigationView : UIGestureRecognizerDelegate {
             mode = .walking
         }
         
-        var items = [URLQueryItem]();
+        let items = [URLQueryItem]();
+
+        let routeOptions = UnscrambledRouteOptions(waypoints: [userWaypoint, destinationWaypoint], profileIdentifier: mode, queryItems: items)
         
-        if(_maxHeight != nil)
-        {
-            items.append(URLQueryItem(name: "max_height", value: _maxHeight))
-        }
-        if(_maxWeight != nil)
-        {
-            items.append(URLQueryItem(name: "max_weight", value: _maxWeight))
-        }
-        if(_maxWidth != nil)
-        {
-            items.append(URLQueryItem(name: "max_width", value: _maxWidth))
-        }
-        
+        routeOptions.maximumHeight = Measurement(value: _maxHeight, unit: .meters)
+        routeOptions.maximumWidth = Measurement(value: _maxWidth, unit: .meters)
+        routeOptions.maximumWeight = Measurement(value: _maxWeight, unit: .kilograms)
+
         if(_avoid != nil)
         {
-            items.append(URLQueryItem(name: "exclude", value: _avoid!.joined(separator:",")))
+            routeOptions.setExcludes(array: _avoid!)
         }
-
-        let routeOptions = NavigationRouteOptions(waypoints: [userWaypoint, destinationWaypoint], profileIdentifier: mode, queryItems: items)
         
         Directions.shared.calculate(routeOptions) { [weak self] (session, result) in
             if let strongSelf = self {
@@ -666,5 +671,25 @@ extension FlutterMapboxNavigationView : UIGestureRecognizerDelegate {
                 }
             }
         }
+    }
+}
+
+
+class UnscrambledRouteOptions: NavigationRouteOptions {
+    /// The locations of some known pedestrian scrambles to avoid.
+    public var excludePoints: [String] = []
+    
+    override var urlQueryItems: [URLQueryItem] {
+        var items = super.urlQueryItems
+        items.append(.init(name: "exclude", value: excludePoints.joined(separator: ",")))
+        return items
+    }
+    
+    required convenience init(from decoder: Decoder) throws {
+        try self.init(from: decoder)
+    }
+    
+    func setExcludes(array: [String]) {
+        excludePoints = array
     }
 }
