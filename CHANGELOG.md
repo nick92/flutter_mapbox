@@ -1,3 +1,9 @@
+## 0.5.4
+
+* accept avoids into buildRoute func
+* fix iOS excludes as was ommitting point from URLQuery parameter
+
+
 ## 0.5.3
 
 * update to Mapbox Navigation in Android v 2.11.0 
