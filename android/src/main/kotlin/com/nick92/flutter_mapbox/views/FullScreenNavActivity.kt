@@ -29,10 +29,7 @@ import com.mapbox.navigation.base.TimeFormat
 import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
 import com.mapbox.navigation.base.options.NavigationOptions
-import com.mapbox.navigation.base.route.NavigationRoute
-import com.mapbox.navigation.base.route.RouterCallback
-import com.mapbox.navigation.base.route.RouterFailure
-import com.mapbox.navigation.base.route.RouterOrigin
+import com.mapbox.navigation.base.route.*
 import com.mapbox.navigation.core.MapboxNavigation
 import com.mapbox.navigation.core.MapboxNavigationProvider
 import com.mapbox.navigation.core.directions.session.RoutesObserver
@@ -60,6 +57,7 @@ import com.mapbox.navigation.ui.maps.route.arrow.model.RouteArrowOptions
 import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineApi
 import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineView
 import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
+import com.mapbox.navigation.ui.maps.route.line.model.NavigationRouteLine
 import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
 import com.mapbox.navigation.ui.tripprogress.api.MapboxTripProgressApi
 import com.mapbox.navigation.ui.tripprogress.model.*
@@ -355,9 +353,9 @@ class FullscreenNavActivity : AppCompatActivity() {
                 )
                 .layersList(listOf(mapboxNavigation.getZLevel(), null))
                 .build(),
-            object : RouterCallback {
+            object : NavigationRouterCallback {
                 override fun onRoutesReady(
-                    routes: List<DirectionsRoute>,
+                    routes: List<NavigationRoute>,
                     routerOrigin: RouterOrigin
                 ) {
                     setRoutesAndStartNavigation(routes)
@@ -403,9 +401,9 @@ class FullscreenNavActivity : AppCompatActivity() {
                 )
                 .layersList(listOf(mapboxNavigation.getZLevel(), null))
                 .build(),
-            object : RouterCallback {
+            object : NavigationRouterCallback {
                 override fun onRoutesReady(
-                    routes: List<DirectionsRoute>,
+                    routes: List<NavigationRoute>,
                     routerOrigin: RouterOrigin
                 ) {
                     setRoutesAndStartNavigation(routes)
@@ -425,26 +423,10 @@ class FullscreenNavActivity : AppCompatActivity() {
         )
     }
 
-    private fun setRoute(routes: List<DirectionsRoute>) {
+    private fun setRoutesAndStartNavigation(routes: List<NavigationRoute>) {
         // set routes, where the first route in the list is the primary route that
         // will be used for active guidance
-        mapboxNavigation.setRoutes(routes)
-        // show the "Reset the route" button
-        canResetRoute = true
-    }
-
-    // Resets the current route
-    private fun resetCurrentRoute() {
-        if (mapboxNavigation.getNavigationRoutes().isNotEmpty()) {
-            mapboxNavigation.setNavigationRoutes(emptyList()) // reset route
-            addedWaypoints.clear() // reset stored waypoints
-        }
-    }
-
-    private fun setRoutesAndStartNavigation(routes: List<DirectionsRoute>) {
-        // set routes, where the first route in the list is the primary route that
-        // will be used for active guidance
-        mapboxNavigation.setRoutes(routes)
+        mapboxNavigation.setNavigationRoutes(routes)
 
         // show UI elements
         binding.soundButton.visibility = View.VISIBLE
@@ -786,21 +768,17 @@ class FullscreenNavActivity : AppCompatActivity() {
      * - driver got off route and a reroute was executed
      */
     private val routesObserver = RoutesObserver { routeUpdateResult ->
-        if (routeUpdateResult.routes.isNotEmpty()) {
-            // generate route geometries asynchronously and render them
-            val routeLines = routeUpdateResult.routes.map { RouteLine(it, null) }
-
-            routeLineApi.setRoutes(
-                routeLines
+        if (routeUpdateResult.navigationRoutes.isNotEmpty()) {
+            routeLineApi.setNavigationRoutes(
+                routeUpdateResult.navigationRoutes
             ) { value ->
                 mapboxMap.getStyle()?.apply {
                     routeLineView.renderRouteDrawData(this, value)
                 }
             }
-
             navigationCamera.requestNavigationCameraToFollowing()
             // update the camera position to account for the new route
-            viewportDataSource.onRouteChanged(routeUpdateResult.routes.first())
+            viewportDataSource.onRouteChanged(routeUpdateResult.navigationRoutes.first())
             viewportDataSource.evaluate()
         } else {
             // remove the route line and route arrow from the map

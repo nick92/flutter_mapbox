@@ -224,7 +224,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         val routeArrowOptions = RouteArrowOptions.Builder(activity).build()
         routeArrowView = MapboxRouteArrowView(routeArrowOptions)
 
-        var styleUrl = mapStyleUrlDay
+        var styleUrl = FlutterMapboxPlugin.mapStyleUrlDay
         if (styleUrl == null) styleUrl = Style.MAPBOX_STREETS
         // load map style if set if not default
         mapboxMap.loadStyleUri(
@@ -615,8 +615,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 navigationVoiceUnits = DirectionsCriteria.METRIC
         }
 
-        mapStyleUrlDay = arguments?.get("mapStyleUrlDay") as? String
-        mapStyleUrlNight = arguments?.get("mapStyleUrlNight") as? String
+        FlutterMapboxPlugin.mapStyleUrlDay = arguments?.get("mapStyleUrlDay") as? String
+        FlutterMapboxPlugin.mapStyleUrlNight = arguments?.get("mapStyleUrlNight") as? String
 
         initialLatitude = arguments["initialLatitude"] as? Double
         initialLongitude = arguments["initialLongitude"] as? Double
@@ -732,8 +732,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     val pois: MutableList<PointAnnotation> = mutableListOf()
     var navigationMode =  DirectionsCriteria.PROFILE_DRIVING_TRAFFIC
     var simulateRoute = false
-    var mapStyleUrlDay: String? = null
-    var mapStyleUrlNight: String? = null
     var navigationLanguage = "en"
     var navigationVoiceUnits = DirectionsCriteria.METRIC
     var zoom = 14.0
@@ -1072,24 +1070,16 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
      */
     private val routesObserver = RoutesObserver { routeUpdateResult ->
         if (routeUpdateResult.navigationRoutes.isNotEmpty()) {
-            // generate route geometries asynchronously and render them
-            val routeLines = routeUpdateResult.routes.map { RouteLine(it, null) }
-
-            routeLineApi.setRoutes(
-                routeLines
+            routeLineApi.setNavigationRoutes(
+                routeUpdateResult.navigationRoutes
             ) { value ->
                 mapboxMap.getStyle()?.apply {
                     routeLineView.renderRouteDrawData(this, value)
                 }
             }
-
             // update the camera position to account for the new route
-            viewportDataSource.onRouteChanged(routeUpdateResult.routes.first())
+            viewportDataSource.onRouteChanged(routeUpdateResult.navigationRoutes.first())
             viewportDataSource.evaluate()
-
-            //send a reroute event
-            PluginUtilities.sendEvent(MapBoxEvents.REROUTE_ALONG, routeUpdateResult.reason)
-
         } else {
             // remove the route line and route arrow from the map
             val style = mapboxMap.getStyle()

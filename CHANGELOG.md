@@ -1,3 +1,14 @@
+## 0.5.5
+
+* update missing refs
+
+## 0.5.5
+
+* update style to write to FlutterMapboxPlugin global var
+* change FullScreenNav to use Navigation routes over depricated routes
+* fix for line draw not updating on FullScreenNav
+
+
 ## 0.5.4
 
 * accept avoids into buildRoute func
