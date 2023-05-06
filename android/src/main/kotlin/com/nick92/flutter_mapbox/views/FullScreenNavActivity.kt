@@ -6,15 +6,11 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.location.Location
 import android.os.Bundle
-import android.util.Log
-import android.util.Log.VERBOSE
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.nick92.flutter_mapbox.FlutterMapboxPlugin
-import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.mapbox.api.directions.v5.models.*
 import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
@@ -28,12 +24,17 @@ import com.mapbox.maps.plugin.scalebar.scalebar
 import com.mapbox.navigation.base.TimeFormat
 import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
+import com.mapbox.navigation.base.formatter.DistanceFormatterOptions
 import com.mapbox.navigation.base.options.NavigationOptions
 import com.mapbox.navigation.base.route.*
 import com.mapbox.navigation.core.MapboxNavigation
 import com.mapbox.navigation.core.MapboxNavigationProvider
 import com.mapbox.navigation.core.directions.session.RoutesObserver
 import com.mapbox.navigation.core.formatter.MapboxDistanceFormatter
+import com.mapbox.navigation.core.internal.MapboxNavigationSDK
+import com.mapbox.navigation.core.internal.telemetry.CustomEvent
+import com.mapbox.navigation.core.internal.telemetry.NavigationCustomEventType
+import com.mapbox.navigation.core.internal.telemetry.sendCustomEvent
 import com.mapbox.navigation.core.replay.MapboxReplayer
 import com.mapbox.navigation.core.replay.ReplayLocationEngine
 import com.mapbox.navigation.core.replay.route.ReplayProgressObserver
@@ -57,8 +58,7 @@ import com.mapbox.navigation.ui.maps.route.arrow.model.RouteArrowOptions
 import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineApi
 import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineView
 import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
-import com.mapbox.navigation.ui.maps.route.line.model.NavigationRouteLine
-import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
+import com.mapbox.navigation.ui.speedlimit.api.MapboxSpeedInfoApi
 import com.mapbox.navigation.ui.tripprogress.api.MapboxTripProgressApi
 import com.mapbox.navigation.ui.tripprogress.model.*
 import com.mapbox.navigation.ui.tripprogress.view.MapboxTripProgressView
@@ -68,12 +68,15 @@ import com.mapbox.navigation.ui.voice.model.SpeechAnnouncement
 import com.mapbox.navigation.ui.voice.model.SpeechError
 import com.mapbox.navigation.ui.voice.model.SpeechValue
 import com.mapbox.navigation.ui.voice.model.SpeechVolume
+import com.nick92.flutter_mapbox.FlutterMapboxPlugin
 import com.nick92.flutter_mapbox.R
 import com.nick92.flutter_mapbox.databinding.MapActivityBinding
 import com.nick92.flutter_mapbox.models.MapBoxEvents
+import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
 import com.nick92.flutter_mapbox.utilities.PluginUtilities.Companion.sendEvent
 import java.util.*
+
 
 class FullscreenNavActivity : AppCompatActivity() {
 
@@ -173,7 +176,9 @@ class FullscreenNavActivity : AppCompatActivity() {
         }
 
         // make sure to use the same DistanceFormatterOptions across different features
-        val distanceFormatterOptions = mapboxNavigation.navigationOptions.distanceFormatterOptions
+        distanceFormatterOptions = mapboxNavigation.navigationOptions.distanceFormatterOptions
+
+        speedInfoApi = MapboxSpeedInfoApi()
 
         // initialize maneuver api that feeds the data to the top banner maneuver view
         maneuverApi = MapboxManeuverApi(
@@ -580,6 +585,10 @@ class FullscreenNavActivity : AppCompatActivity() {
      */
     private lateinit var maneuverApi: MapboxManeuverApi
 
+    private lateinit var distanceFormatterOptions: DistanceFormatterOptions
+
+    private lateinit var speedInfoApi: MapboxSpeedInfoApi
+
     /**
      * Generates updates for the [MapboxTripProgressView] that include remaining time and distance to the destination.
      */
@@ -713,6 +722,9 @@ class FullscreenNavActivity : AppCompatActivity() {
                         .build()
                 )
             }
+
+            val value = speedInfoApi.updatePostedAndCurrentSpeed(locationMatcherResult, distanceFormatterOptions)
+            binding.speedLimitView.render(value)
         }
     }
 

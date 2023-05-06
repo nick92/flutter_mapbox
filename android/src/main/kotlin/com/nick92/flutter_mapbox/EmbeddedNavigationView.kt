@@ -68,7 +68,6 @@ import com.mapbox.navigation.ui.maps.route.arrow.model.RouteArrowOptions
 import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineApi
 import com.mapbox.navigation.ui.maps.route.line.api.MapboxRouteLineView
 import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
-import com.mapbox.navigation.ui.maps.route.line.model.RouteLine
 import com.mapbox.navigation.ui.tripprogress.api.MapboxTripProgressApi
 import com.mapbox.navigation.ui.tripprogress.model.*
 import com.mapbox.navigation.ui.tripprogress.view.MapboxTripProgressView
@@ -732,6 +731,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     val pois: MutableList<PointAnnotation> = mutableListOf()
     var navigationMode =  DirectionsCriteria.PROFILE_DRIVING_TRAFFIC
     var simulateRoute = false
+    var mapStyleUrlDay: String? = null
+    var mapStyleUrlNight: String? = null
     var navigationLanguage = "en"
     var navigationVoiceUnits = DirectionsCriteria.METRIC
     var zoom = 14.0
@@ -1080,6 +1081,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             // update the camera position to account for the new route
             viewportDataSource.onRouteChanged(routeUpdateResult.navigationRoutes.first())
             viewportDataSource.evaluate()
+
+            //send a reroute event
+            PluginUtilities.sendEvent(MapBoxEvents.REROUTE_ALONG, routeUpdateResult.reason)
         } else {
             // remove the route line and route arrow from the map
             val style = mapboxMap.getStyle()

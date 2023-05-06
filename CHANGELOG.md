@@ -1,4 +1,14 @@
-## 0.5.5
+## 0.5.8
+
+* add in speed limit indicator for android
+
+
+## 0.5.7
+
+* add in map style vars as was failing without
+* add update route event back into route observer func
+
+## 0.5.6
 
 * update missing refs
 

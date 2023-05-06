@@ -5,15 +5,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+
     <com.mapbox.maps.MapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
 
     <androidx.cardview.widget.CardView
         android:id="@+id/tripProgressCard"
@@ -45,6 +47,15 @@
             app:srcCompat="@android:drawable/ic_menu_close_clear_cancel" />
 
     </androidx.cardview.widget.CardView>
+
+    <com.mapbox.navigation.ui.speedlimit.view.MapboxSpeedInfoView
+        android:id="@+id/speedLimitView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginBottom="100dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <com.mapbox.navigation.ui.maneuver.view.MapboxManeuverView
         android:id="@+id/maneuverView"
