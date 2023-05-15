@@ -1,3 +1,7 @@
+## 0.5.9
+
+* android - add null check for styles before updating vars
+
 ## 0.5.8
 
 * add in speed limit indicator for android
