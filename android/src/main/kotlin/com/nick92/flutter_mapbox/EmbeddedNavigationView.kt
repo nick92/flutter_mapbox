@@ -301,7 +301,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 startNavigation(methodCall, result)
             }
             "startFullScreenNavigation" -> {
-                FullscreenNavigationLauncher.startNavigation(this.activity, wayPoints)
+                beginFullScreenNavigation()
             }
             "finishNavigation" -> {
                 finishNavigation(methodCall, result)
@@ -432,6 +432,10 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                     PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILD_CANCELLED)
                 }
             })
+    }
+
+    private fun beginFullScreenNavigation() {
+        activity?.let { FullscreenNavigationLauncher.startNavigation(it, wayPoints) }
     }
 
     private fun addPOIAnnotations(pois: HashMap<*, *>) {
@@ -614,8 +618,14 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 navigationVoiceUnits = DirectionsCriteria.METRIC
         }
 
-        FlutterMapboxPlugin.mapStyleUrlDay = arguments?.get("mapStyleUrlDay") as? String
-        FlutterMapboxPlugin.mapStyleUrlNight = arguments?.get("mapStyleUrlNight") as? String
+        val styleDay = arguments?.get("mapStyleUrlDay") as? String
+        val styleNight = arguments?.get("mapStyleUrlNight") as? String
+
+        if(styleDay != null)
+            FlutterMapboxPlugin.mapStyleUrlDay = arguments?.get("mapStyleUrlDay") as? String
+
+        if(styleNight != null)
+            FlutterMapboxPlugin.mapStyleUrlNight = arguments?.get("mapStyleUrlNight") as? String
 
         initialLatitude = arguments["initialLatitude"] as? Double
         initialLongitude = arguments["initialLongitude"] as? Double

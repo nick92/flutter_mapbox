@@ -153,8 +153,14 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
         navigationVoiceUnits = DirectionsCriteria.METRIC
     }
 
-    mapStyleUrlDay = arguments?.get("mapStyleUrlDay") as? String
-    mapStyleUrlNight = arguments?.get("mapStyleUrlNight") as? String
+    val styleDay = arguments?.get("mapStyleUrlDay") as? String
+    val styleNight = arguments?.get("mapStyleUrlNight") as? String
+
+    if(styleDay != null)
+      mapStyleUrlDay = styleDay
+
+    if(styleNight != null)
+      mapStyleUrlNight = styleNight
 
     wayPoints.clear()
 
