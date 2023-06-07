@@ -360,11 +360,11 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         
         let avoid = arguments?["avoid"] as? [String]
         
-        if(avoid != nil)
+        if(avoid != nil && !avoid!.isEmpty)
         {
             routeOptions.setExcludes(array: avoid!)
         }
-        else
+        else if (_avoid != nil && _avoid!.isEmpty )
         {
             routeOptions.setExcludes(array: _avoid!)
         }
@@ -391,7 +391,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         routeOptions.maximumHeight = Measurement(value: max_height, unit: .meters)
         routeOptions.maximumWidth = Measurement(value: max_width, unit: .meters)
         routeOptions.maximumWeight = Measurement(value: max_weight, unit: .kilograms)
-        routeOptions.includesTollPrices = true
 
         if (_allowsUTurnAtWayPoints != nil)
         {
@@ -681,7 +680,11 @@ class UnscrambledRouteOptions: NavigationRouteOptions {
     
     override var urlQueryItems: [URLQueryItem] {
         var items = super.urlQueryItems
-        items.append(.init(name: "exclude", value: excludePoints.joined(separator: ",")))
+        
+        if(!excludePoints.isEmpty) {
+            items.append(.init(name: "exclude", value: excludePoints.joined(separator: ",")))
+        }
+        
         return items
     }
     
