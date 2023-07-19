@@ -1,3 +1,8 @@
+## 0.6.0
+
+* ios - only add excludes empty check as was erroring
+
+
 ## 0.5.9
 
 * android - add null check for styles before updating vars
