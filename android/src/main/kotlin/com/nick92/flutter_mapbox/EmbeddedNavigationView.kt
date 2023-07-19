@@ -439,8 +439,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     private fun addPOIAnnotations(pois: HashMap<*, *>) {
-        val annotationApi = mapView?.annotations
-        pointAnnotationManager = annotationApi.createPointAnnotationManager()
+        val annotationApi = mapView.annotations
+        pointAnnotationManager = annotationApi!!.createPointAnnotationManager()
 
         val parkingImage = ContextCompat.getDrawable(
             context,
@@ -1165,7 +1165,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     private val onCameraChangeListener = OnCameraChangeListener {
-        if(mapboxMap.cameraState.zoom < 7 && pointAnnotationManager.annotations.isNotEmpty()) {
+        if (mapboxMap.cameraState.zoom < 7 && pointAnnotationManager.annotations.isNotEmpty()) {
             pointAnnotationManager.deleteAll()
         } else if (mapboxMap.cameraState.zoom > 7 && pointAnnotationManager.annotations.isEmpty()) {
             pointAnnotationManager.create(listOfPoints)
