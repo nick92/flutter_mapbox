@@ -43,6 +43,11 @@ class MapBoxNavigation {
       .invokeMethod<double?>('getDistanceRemaining')
       .then<double?>((dynamic result) => result);
 
+  ///Get currect coordinates of center view
+  Future<List<Object?>> get centerCoordinates => _methodChannel
+      .invokeMethod<List<Object?>>('getCenterCoordinates')
+      .then<List<Object?>>((dynamic result) => result);
+
   ///Total seconds remaining on all legs.
   Future<double?> get durationRemaining => _methodChannel
       .invokeMethod<double?>('getDurationRemaining')

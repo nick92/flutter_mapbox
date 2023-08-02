@@ -1,3 +1,13 @@
+## 0.6.2
+
+* android - work to pass back current view ceter coordinates
+
+
+## 0.6.1
+
+* android - fix for null check bug #8 
+
+
 ## 0.6.0
 
 * ios - only add excludes empty check as was erroring

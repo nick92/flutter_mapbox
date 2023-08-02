@@ -10,6 +10,7 @@ import android.graphics.drawable.Drawable
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -28,6 +29,7 @@ import com.mapbox.maps.plugin.annotation.annotations
 import com.mapbox.maps.plugin.annotation.generated.*
 import com.mapbox.maps.plugin.compass.compass
 import com.mapbox.maps.plugin.delegates.listeners.OnCameraChangeListener
+import com.mapbox.maps.plugin.delegates.listeners.OnMapIdleListener
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.location
@@ -275,6 +277,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         isVoiceInstructionsMuted = true
 
         mapView.gestures.addOnMapClickListener(mapClickListener)
+
+        mapboxMap.addOnMapIdleListener(addOnMapIdleListener)
+        mapboxMap.addOnCameraChangeListener(onCameraChangeListener)
         // initialize navigation trip observers
         registerObservers()
         mapboxNavigation.startTripSession(withForegroundService = false)
@@ -308,6 +313,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
             "getDistanceRemaining" -> {
                 result.success(distanceRemaining)
+            }
+            "getCenterCoordinates" -> {
+                result.success(centerCoords)
             }
             "getDurationRemaining" -> {
                 result.success(durationRemaining)
@@ -464,8 +472,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
             listOfPoints.add(pointAnnotationOptions)
         }
-
-        mapboxMap.addOnCameraChangeListener(onCameraChangeListener)
 
         pointAnnotationManager.addClickListener(onPointAnnotationClickListener)
         // Add the resulting pointAnnotation to the map.
@@ -750,8 +756,10 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     var tilt = 0.0
     var distanceRemaining: Double? = null
     var durationRemaining: Double? = null
-
+    var centerCoords: MutableList<Double> = mutableListOf()
     var alternatives = true
+
+    var mapMoved = false
 
     var allowsUTurnAtWayPoints = false
     var enableRefresh = false
@@ -1164,12 +1172,24 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         false
     }
 
-    private val onCameraChangeListener = OnCameraChangeListener {
-        if (mapboxMap.cameraState.zoom < 7 && pointAnnotationManager.annotations.isNotEmpty()) {
-            pointAnnotationManager.deleteAll()
-        } else if (mapboxMap.cameraState.zoom > 7 && pointAnnotationManager.annotations.isEmpty()) {
-            pointAnnotationManager.create(listOfPoints)
+    private val addOnMapIdleListener = OnMapIdleListener {
+        if (mapMoved) {
+            val coords = mapboxMap.cameraState.center
+            centerCoords = mutableListOf(coords.longitude(), coords.latitude())
+            PluginUtilities.sendEvent(MapBoxEvents.MAP_POSITION_CHANGED)
+            mapMoved = false
         }
+    }
+
+    private val onCameraChangeListener = OnCameraChangeListener {
+        if (::pointAnnotationManager.isInitialized) {
+            if (mapboxMap.cameraState.zoom < 7 && pointAnnotationManager.annotations.isNotEmpty()) {
+                pointAnnotationManager.deleteAll()
+            } else if (mapboxMap.cameraState.zoom > 7 && pointAnnotationManager.annotations.isEmpty()) {
+                pointAnnotationManager.create(listOfPoints)
+            }
+        }
+        mapMoved = true
         false
     }
 

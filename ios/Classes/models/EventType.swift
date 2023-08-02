@@ -19,4 +19,5 @@ enum MapBoxEventType: Int, Codable
     case failed_to_reroute
     case reroute_along
     case annotation_tapped
+    case map_position_changed
 }

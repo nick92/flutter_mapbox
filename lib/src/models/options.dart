@@ -83,7 +83,7 @@ class MapBoxOptions {
   /// No destination is required when set to true.
   final bool? enableFreeDriveMode;
 
-  final List<String>? avoid;
+  late final List<String>? avoid;
 
   MapBoxOptions(
       {this.initialLatitude,

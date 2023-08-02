@@ -19,5 +19,6 @@ enum class MapBoxEvents(val value: String) {
     ON_ARRIVAL("on_arrival"),
     FAILED_TO_REROUTE("failed_to_reroute"),
     ANNOTATION_TAPPED("annotation_tapped"),
+    MAP_POSITION_CHANGED("map_position_changed"),
     REROUTE_ALONG("reroute_along"),
 }

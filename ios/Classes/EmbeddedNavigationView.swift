@@ -66,6 +66,10 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             {
                 result(strongSelf._distanceRemaining)
             }
+            else if(call.method == "getCenterCoordinates")
+            {
+                result(strongSelf._distanceRemaining)
+            }
             else if(call.method == "getDurationRemaining")
             {
                 result(strongSelf._durationRemaining)
