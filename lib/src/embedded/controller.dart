@@ -32,6 +32,11 @@ class MapBoxNavigationViewController {
       .then<String>((dynamic result) => result);
 
   ///Total distance remaining in meters along route.
+  Future<bool> get setPOIImage => _methodChannel
+      .invokeMethod<bool>('setPOIImage')
+      .then<bool>((dynamic result) => result);
+
+  ///Total distance remaining in meters along route.
   Future<double> get distanceRemaining => _methodChannel
       .invokeMethod<double>('getDistanceRemaining')
       .then<double>((dynamic result) => result);
@@ -102,6 +107,44 @@ class MapBoxNavigationViewController {
     _routeEventSubscription = _streamRouteEvent!.listen(_onProgressData);
     return await _methodChannel
         .invokeMethod('buildRoute', args)
+        .then<bool>((dynamic result) => result);
+  }
+
+  ///Build the Route Used for the Navigation
+  ///
+  /// [wayPoints] must not be null. A collection of [WayPoint](longitude, latitude and name). Must be at least 2 or at most 25. Cannot use drivingWithTraffic mode if more than 3-waypoints.
+  /// [options] options used to generate the route and used while navigating
+  ///
+  Future<bool> setPOI(
+      {required String image, required List<WayPoint> wayPoints}) async {
+    assert(wayPoints.length > 1);
+
+    List<Map<String, Object?>> pointList = [];
+
+    for (int i = 0; i < wayPoints.length; i++) {
+      var wayPoint = wayPoints[i];
+      assert(wayPoint.name != null);
+      assert(wayPoint.latitude != null);
+      assert(wayPoint.longitude != null);
+
+      final pointMap = <String, dynamic>{
+        "Order": i,
+        "Name": wayPoint.name,
+        "Latitude": wayPoint.latitude,
+        "Longitude": wayPoint.longitude,
+      };
+      pointList.add(pointMap);
+    }
+    var i = 0;
+    var wayPointMap =
+        Map.fromIterable(pointList, key: (e) => i++, value: (e) => e);
+
+    Map<String, dynamic> args = Map<String, dynamic>();
+    args["icon"] = image;
+    args["poi"] = wayPointMap;
+
+    return await _methodChannel
+        .invokeMethod('setPOIs', args)
         .then<bool>((dynamic result) => result);
   }
 

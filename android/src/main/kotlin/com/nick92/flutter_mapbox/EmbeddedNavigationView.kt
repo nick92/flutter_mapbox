@@ -3,19 +3,17 @@ package com.nick92.flutter_mapbox
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.res.AssetManager
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.drawable.Drawable
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import androidx.core.view.marginEnd
-import androidx.core.view.marginTop
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.bindgen.Expected
@@ -73,7 +71,6 @@ import com.mapbox.navigation.ui.maps.route.line.model.MapboxRouteLineOptions
 import com.mapbox.navigation.ui.tripprogress.api.MapboxTripProgressApi
 import com.mapbox.navigation.ui.tripprogress.model.*
 import com.mapbox.navigation.ui.tripprogress.view.MapboxTripProgressView
-import com.mapbox.navigation.ui.utils.internal.extensions.getBitmap
 import com.mapbox.navigation.ui.voice.api.MapboxSpeechApi
 import com.mapbox.navigation.ui.voice.api.MapboxVoiceInstructionsPlayer
 import com.mapbox.navigation.ui.voice.model.SpeechAnnouncement
@@ -330,6 +327,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                         .build()
                 )
             }
+            "setPOIs" -> {
+                addPOIs(methodCall, result)
+            }
             else -> result.notImplemented()
         }
     }
@@ -446,36 +446,62 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         activity?.let { FullscreenNavigationLauncher.startNavigation(it, wayPoints) }
     }
 
-    private fun addPOIAnnotations(pois: HashMap<*, *>) {
+    private fun addPOIs(methodCall: MethodCall, result: MethodChannel.Result) {
+        val arguments = methodCall.arguments as? Map<*, *>
+
+        if(arguments != null) {
+            val groupName = arguments["group"] as? String
+            val base64Image = arguments["icon"] as? String
+            val poiPoints = arguments["poi"] as? HashMap<*, *>
+            var poiImage: ByteArray? = null
+
+            base64Image?.let {
+                // Decode and use the image as needed
+                poiImage = android.util.Base64.decode(it, 0)
+            }
+
+            var image = BitmapFactory.decodeByteArray(poiImage, 0, poiImage!!.size)
+            addPOIAnnotations(image, poiPoints!!)
+        }
+        result.success(true)
+    }
+
+    private fun addPOIAnnotations(poiImage: Bitmap, pois: HashMap<*, *>) {
         val annotationApi = mapView.annotations
         pointAnnotationManager = annotationApi!!.createPointAnnotationManager()
 
-        val parkingImage = ContextCompat.getDrawable(
-            context,
-            R.drawable.square_parking_solid__1_
-        )?.getBitmap()
-
         for (item in pois) {
             val poi = item.value as HashMap<*, *>
-            var name = poi["Name"] as String
+            val name = poi["Name"] as String
             val latitude = poi["Latitude"] as Double
             val longitude = poi["Longitude"] as Double
 
             val pointAnnotationOptions = PointAnnotationOptions()
                 .withPoint(Point.fromLngLat(longitude, latitude))
-                .withIconImage(parkingImage!!)
+                .withIconImage(poiImage)
 
-            pointAnnotationOptions.iconSize = 0.4
+            pointAnnotationOptions.iconSize = 0.2
             pointAnnotationOptions.textOffset = listOf(0.0, 2.5)
             pointAnnotationOptions.textField = name
             pointAnnotationOptions.textSize = 12.0
 
-            listOfPoints.add(pointAnnotationOptions)
+            if(!containsName(name)) {
+                listOfPoints.add(pointAnnotationOptions)
+            }
         }
 
         pointAnnotationManager.addClickListener(onPointAnnotationClickListener)
         // Add the resulting pointAnnotation to the map.
         pointAnnotationManager.create(listOfPoints)
+    }
+
+    private fun containsName(nameToCheck: String): Boolean {
+        for (point in listOfPoints) {
+            if (point.textField == nameToCheck) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun moveCameraToOriginOfRoute() {
@@ -683,10 +709,10 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         if(longPress != null)
             longPressDestinationEnabled = longPress
 
-        val poiPoints = arguments["poi"] as? HashMap<*, *>
-
-        if(poiPoints != null)
-            addPOIAnnotations(poiPoints)
+//        val poiPoints = arguments["poi"] as? HashMap<*, *>
+//
+//        if(poiPoints != null)
+//            addPOIAnnotations(poiPoints)
 
         var avoids = arguments["avoid"] as? List<String>
 
@@ -772,7 +798,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     var maxWeight: Double? = null
     var maxWidth: Double? = null
     var excludeList: List<String> = listOf()
-
     var originPoint: Point? = null
     var destinationPoint: Point? = null
 

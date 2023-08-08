@@ -1,3 +1,14 @@
+## 0.6.4
+
+* android - on add POI if doesn't already exist
+
+
+## 0.6.3
+
+* android - add POI with base64 image method
+* android - remove add poi from MapBoxOptions
+
+
 ## 0.6.2
 
 * android - work to pass back current view ceter coordinates

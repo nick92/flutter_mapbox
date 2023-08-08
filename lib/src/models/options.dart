@@ -46,7 +46,6 @@ class MapBoxOptions {
   String? maxHeight;
   String? maxWeight;
   String? maxWidth;
-  List<WayPoint>? pois;
 
   /// If the value of this property is true, a returned route may require an immediate U-turn at an intermediate waypoint. At an intermediate waypoint, if the value of this property is false, each returned route may continue straight ahead or turn to either side but may not U-turn. This property has no effect if only two waypoints are specified.
   /// same as 'not continueStraight' on Android
@@ -109,7 +108,6 @@ class MapBoxOptions {
       this.mapStyleUrlNight,
       this.enableFreeDriveMode,
       this.padding,
-      this.pois,
       this.avoid,
       this.animateBuildRoute});
 
@@ -119,28 +117,6 @@ class MapBoxOptions {
       if (value != null) {
         optionsMap[fieldName] = value;
       }
-    }
-
-    if (pois != null && pois!.isNotEmpty) {
-      List<Map<String, Object?>> poiList = [];
-
-      for (var poi in pois!) {
-        assert(poi.name != null);
-        assert(poi.latitude != null);
-        assert(poi.longitude != null);
-
-        final pointMap = <String, dynamic>{
-          "Name": poi.name,
-          "Latitude": poi.latitude,
-          "Longitude": poi.longitude,
-        };
-        poiList.add(pointMap);
-      }
-      var i = 0;
-      var wayPointMap =
-          Map.fromIterable(poiList, key: (e) => i++, value: (e) => e);
-
-      optionsMap['poi'] = wayPointMap;
     }
 
     addIfNonNull("initialLatitude", initialLatitude);
