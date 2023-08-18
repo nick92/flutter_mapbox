@@ -41,11 +41,11 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         self.eventChannel.setStreamHandler(self)
 
         self.channel.setMethodCallHandler { [weak self](call, result) in
-
+            
             guard let strongSelf = self else { return }
-
+            
             let arguments = call.arguments as? NSDictionary
-
+            
             if(call.method == "getPlatformVersion")
             {
                 result("iOS " + UIDevice.current.systemVersion)
@@ -98,6 +98,10 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             {
                 //used to recenter map from user action during navigation
                 strongSelf.navigationMapView.navigationCamera.follow()
+            }
+            else if(call.method == "setPOIs")
+            {
+                
             }
             else
             {
@@ -165,7 +169,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         navigationMapView.userLocationStyle = .puck2D()
         
         let mapView = navigationMapView.mapView
-        let pointAnnotationManager = mapView?.annotations.makePointAnnotationManager()
         
         if(self.arguments != nil)
         {
@@ -218,38 +221,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 currentLocation = locationManager.location
             }
             
-            let oPOIs = arguments?["poi"] as? NSDictionary ?? [:]
-
-            for item in oPOIs as NSDictionary
-            {
-                let point = item.value as! NSDictionary
-                guard let oName = point["Name"] as? String else {return}
-                guard let oLatitude = point["Latitude"] as? Double else {return}
-                guard let oLongitude = point["Longitude"] as? Double else {return}
-                
-                let centerCoordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
-                var customPointAnnotation = PointAnnotation(coordinate: centerCoordinate)
-                customPointAnnotation.image = .init(image: UIImage(named: "ParkingIcon")!, name: "ParkingIcon")
-                customPointAnnotation.iconSize = 0.2
-                customPointAnnotation.textField = oName
-                customPointAnnotation.textSize = 12
-                customPointAnnotation.textOffset = [0, 2]
-                
-                pois.append(customPointAnnotation)
-            }
-            
-            pointAnnotationManager?.delegate = self
-            pointAnnotationManager?.annotations = pois
-            
-            mapView?.mapboxMap.onEvery(event: .cameraChanged, handler: { [weak self] _ in
-                guard let self = self else { return }
-                if((mapView?.cameraState.zoom)! < 7){
-                    pointAnnotationManager?.annotations = []
-                } else if ((mapView?.cameraState.zoom)! > 7){
-                    pointAnnotationManager?.annotations = self.pois
-                } 
-            })
-            
             
             let initialLatitude = arguments?["initialLatitude"] as? Double ?? currentLocation?.coordinate.latitude
             let initialLongitude = arguments?["initialLongitude"] as? Double ?? currentLocation?.coordinate.longitude
@@ -267,6 +238,47 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             navigationMapView?.addGestureRecognizer(gesture)
         }
 
+    }
+    
+    func addPOIs(arguments: NSDictionary?, result: @escaping FlutterResult){
+        let oPOIs = arguments?["poi"] as? NSDictionary ?? [:]
+        let image = arguments?["icon"] as? String ?? ""
+        let groupName = arguments?["group"] as? String ?? ""
+        
+        let imageData = Data(base64Encoded: image)
+        let mapView = navigationMapView.mapView
+        let pointAnnotationManager = mapView?.annotations.makePointAnnotationManager()
+        
+        
+        for item in oPOIs as NSDictionary
+        {
+            let point = item.value as! NSDictionary
+            guard let oName = point["Name"] as? String else {return}
+            guard let oLatitude = point["Latitude"] as? Double else {return}
+            guard let oLongitude = point["Longitude"] as? Double else {return}
+            
+            let centerCoordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
+            var customPointAnnotation = PointAnnotation(coordinate: centerCoordinate)
+            customPointAnnotation.image = .init(image: UIImage(data: imageData!)!, name: groupName)
+            customPointAnnotation.iconSize = 0.2
+            customPointAnnotation.textField = oName
+            customPointAnnotation.textSize = 12
+            customPointAnnotation.textOffset = [0, 2]
+            
+            pois.append(customPointAnnotation)
+        }
+        
+        pointAnnotationManager?.delegate = self
+        pointAnnotationManager?.annotations = pois
+        
+        mapView?.mapboxMap.onEvery(event: .cameraChanged, handler: { [weak self] _ in
+            guard let self = self else { return }
+            if((mapView?.cameraState.zoom)! < 7){
+                pointAnnotationManager?.annotations = []
+            } else if ((mapView?.cameraState.zoom)! > 7){
+                pointAnnotationManager?.annotations = self.pois
+            }
+        })
     }
     
     func updateCarmera(arguments: NSDictionary?, result: @escaping FlutterResult){
