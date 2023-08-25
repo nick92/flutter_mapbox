@@ -80,6 +80,7 @@ import com.mapbox.navigation.ui.voice.model.SpeechVolume
 import com.mapbox.navigation.ui.voice.view.MapboxSoundButton
 import com.nick92.flutter_mapbox.databinding.MapActivityBinding
 import com.nick92.flutter_mapbox.models.MapBoxEvents
+import com.nick92.flutter_mapbox.models.MapBoxPointAnnotaions
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
 import com.nick92.flutter_mapbox.views.FullscreenNavigationLauncher
@@ -269,6 +270,10 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             isVoiceInstructionsMuted = !isVoiceInstructionsMuted
         }
 
+        val annotationApi = mapView.annotations
+        pointAnnotationManager = annotationApi.createPointAnnotationManager()
+        pointAnnotationManager.addClickListener(onPointAnnotationClickListener)
+
         // set initial sounds button state
         soundButton.mute()
         isVoiceInstructionsMuted = true
@@ -329,6 +334,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
             "setPOIs" -> {
                 addPOIs(methodCall, result)
+            }
+            "removePOIs" -> {
+                removePOIs(methodCall, result)
             }
             else -> result.notImplemented()
         }
@@ -460,15 +468,23 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 poiImage = android.util.Base64.decode(it, 0)
             }
 
-            var image = BitmapFactory.decodeByteArray(poiImage, 0, poiImage!!.size)
-            addPOIAnnotations(image, poiPoints!!)
+            val image = BitmapFactory.decodeByteArray(poiImage, 0, poiImage!!.size)
+            addPOIAnnotations(groupName!!, image, poiPoints!!)
         }
         result.success(true)
     }
 
-    private fun addPOIAnnotations(poiImage: Bitmap, pois: HashMap<*, *>) {
-        val annotationApi = mapView.annotations
-        pointAnnotationManager = annotationApi!!.createPointAnnotationManager()
+    private fun removePOIs(methodCall: MethodCall, result: MethodChannel.Result) {
+        val arguments = methodCall.arguments as? Map<*, *>
+
+        if(arguments != null) {
+            val groupName = arguments["group"] as? String
+            removePOIsByGroupName(groupName!!)
+        }
+        result.success(true)
+    }
+
+    private fun addPOIAnnotations(groupName: String, poiImage: Bitmap, pois: HashMap<*, *>) {
 
         for (item in pois) {
             val poi = item.value as HashMap<*, *>
@@ -485,19 +501,46 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             pointAnnotationOptions.textField = name
             pointAnnotationOptions.textSize = 12.0
 
+            val pointAnnotaion = MapBoxPointAnnotaions()
+            pointAnnotaion.groupName = groupName
+            pointAnnotaion.pointAnnotationOptions = pointAnnotationOptions
+
             if(!containsName(name)) {
-                listOfPoints.add(pointAnnotationOptions)
+                listOfPoints.add(pointAnnotaion)
             }
         }
 
-        pointAnnotationManager.addClickListener(onPointAnnotationClickListener)
+        val points: MutableList<PointAnnotationOptions> = mutableListOf()
+
+        for(point in listOfPoints){
+            points.add(point.pointAnnotationOptions!!)
+        }
+
         // Add the resulting pointAnnotation to the map.
-        pointAnnotationManager.create(listOfPoints)
+        pointAnnotationManager.create(points)
+    }
+
+    private fun removePOIsByGroupName(groupName: String) {
+        val pointAnnotaions = pointAnnotationManager.annotations
+        val listOfPois = listOfPoints.filter {
+            it.groupName == groupName
+        }
+
+        val points: MutableList<PointAnnotation> = mutableListOf()
+
+        for(point in listOfPois){
+            val annotation = pointAnnotaions.filter {
+                it.textField == point.pointAnnotationOptions!!.textField
+            }
+            points.addAll(annotation)
+        }
+
+        pointAnnotationManager.delete(points)
     }
 
     private fun containsName(nameToCheck: String): Boolean {
         for (point in listOfPoints) {
-            if (point.textField == nameToCheck) {
+            if (point.pointAnnotationOptions!!.textField == nameToCheck) {
                 return true
             }
         }
@@ -906,7 +949,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         )
     }
 
-    private var listOfPoints: MutableList<PointAnnotationOptions> = mutableListOf()
+    private var listOfPoints: MutableList<MapBoxPointAnnotaions> = mutableListOf()
 
     private lateinit var selectedAnnotation: String
 
@@ -1211,7 +1254,13 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             if (mapboxMap.cameraState.zoom < 7 && pointAnnotationManager.annotations.isNotEmpty()) {
                 pointAnnotationManager.deleteAll()
             } else if (mapboxMap.cameraState.zoom > 7 && pointAnnotationManager.annotations.isEmpty()) {
-                pointAnnotationManager.create(listOfPoints)
+                val points: MutableList<PointAnnotationOptions> = mutableListOf()
+
+                for(point in listOfPoints){
+                    points.add(point.pointAnnotationOptions!!)
+                }
+
+                pointAnnotationManager.create(points)
             }
         }
         mapMoved = true

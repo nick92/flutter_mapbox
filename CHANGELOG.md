@@ -1,3 +1,15 @@
+## 0.6.7
+
+* android - amend poi removal and waypoints asset to isnotempty
+
+## 0.6.6
+
+* android - initialise poiManager on start-up
+
+## 0.6.5
+
+* android - group POIs together and removal work
+
 ## 0.6.4
 
 * android - on add POI if doesn't already exist
