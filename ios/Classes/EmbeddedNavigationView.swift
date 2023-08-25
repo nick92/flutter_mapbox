@@ -26,6 +26,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     var _selectedAnnotation: String?
     var pointAnnotationManager: PointAnnotationManager?
     var pois = [MapboxPointAnnotation]()
+    var mapMoved = false
+    var centerCoords: [Double] = []
     
     init(messenger: FlutterBinaryMessenger, frame: CGRect, viewId: Int64, args: Any?)
     {
@@ -74,6 +76,10 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             else if(call.method == "getDurationRemaining")
             {
                 result(strongSelf._durationRemaining)
+            }
+            else if(call.method == "getCenterCoordinates")
+            {
+                result(strongSelf.centerCoords)
             }
             else if(call.method == "getRouteBuildResponse")
             {
@@ -231,7 +237,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             {
                 moveCameraToCoordinates(latitude: initialLatitude!, longitude: initialLongitude!)
             }
-
         }
 
         if _longPressDestinationEnabled
@@ -241,6 +246,39 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             navigationMapView?.addGestureRecognizer(gesture)
         }
 
+        mapView?.mapboxMap.onEvery(event: .mapIdle, handler: { [weak self] _ in
+            self?.addOnMapIdleListener()
+        })
+
+        mapView?.mapboxMap.onEvery(event: .cameraChanged, handler: { [weak self] _ in
+            self?.onCameraChangeListener()
+        })
+
+    }
+
+    func addOnMapIdleListener() {
+        let mapView = navigationMapView.mapView
+        if mapMoved {
+            let coords = mapView?.mapboxMap.cameraState.center
+            centerCoords = [Double(coords?.longitude ?? 0), Double(coords?.latitude ?? 0)]
+            sendEvent(eventType: MapBoxEventType.map_position_changed)
+            mapMoved = false
+        }
+    }
+
+    func onCameraChangeListener() {
+        let mapView = navigationMapView.mapView
+        if((mapView?.cameraState.zoom)! < 7){
+            self.pointAnnotationManager?.annotations = []
+        } else if ((mapView?.cameraState.zoom)! > 7){
+            var pointAnnot = [PointAnnotation]()
+            for point in self.pois
+            {
+                pointAnnot.append(contentsOf: point.annotation)
+            }
+            self.pointAnnotationManager?.annotations = pointAnnot
+        }
+        mapMoved = true
     }
     
     func addPOIs(arguments: NSDictionary?, result: @escaping FlutterResult){
@@ -275,23 +313,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             pois.append(pointAnnotation)
             pointAnnotationManager?.annotations = pointAnnot
         }
-        
-        let mapView = navigationMapView.mapView
-        mapView?.mapboxMap.onEvery(event: .cameraChanged, handler: { [weak self] _ in
-            guard let self = self else { return }
-            if((mapView?.cameraState.zoom)! < 7){
-                self.pointAnnotationManager?.annotations = []
-            } else if ((mapView?.cameraState.zoom)! > 7){
-                var pointAnnot = [PointAnnotation]()
-                
-                for point in self.pois
-                {
-                    pointAnnot.append(contentsOf: point.annotation)
-                }
-                
-                self.pointAnnotationManager?.annotations = pointAnnot
-            }
-        })
     }
     
     func updateCarmera(arguments: NSDictionary?, result: @escaping FlutterResult){
