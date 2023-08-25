@@ -116,8 +116,10 @@ class MapBoxNavigationViewController {
   /// [options] options used to generate the route and used while navigating
   ///
   Future<bool> setPOI(
-      {required String image, required List<WayPoint> wayPoints}) async {
-    assert(wayPoints.length > 1);
+      {required String groupName,
+      required String image,
+      required List<WayPoint> wayPoints}) async {
+    assert(wayPoints.isNotEmpty);
 
     List<Map<String, Object?>> pointList = [];
 
@@ -140,11 +142,26 @@ class MapBoxNavigationViewController {
         Map.fromIterable(pointList, key: (e) => i++, value: (e) => e);
 
     Map<String, dynamic> args = Map<String, dynamic>();
+    args["group"] = groupName;
     args["icon"] = image;
     args["poi"] = wayPointMap;
 
     return await _methodChannel
         .invokeMethod('setPOIs', args)
+        .then<bool>((dynamic result) => result);
+  }
+
+  ///Build the Route Used for the Navigation
+  ///
+  /// [wayPoints] must not be null. A collection of [WayPoint](longitude, latitude and name). Must be at least 2 or at most 25. Cannot use drivingWithTraffic mode if more than 3-waypoints.
+  /// [options] options used to generate the route and used while navigating
+  ///
+  Future<bool> removePOI({required String groupName}) async {
+    Map<String, dynamic> args = Map<String, dynamic>();
+    args["group"] = groupName;
+
+    return await _methodChannel
+        .invokeMethod('removePOIs', args)
         .then<bool>((dynamic result) => result);
   }
 
