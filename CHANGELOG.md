@@ -1,3 +1,7 @@
+## 0.6.8
+
+* ios - poi annotation work to match android
+
 ## 0.6.7
 
 * android - amend poi removal and waypoints asset to isnotempty

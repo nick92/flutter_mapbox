@@ -24,7 +24,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     var _mapInitialized = false;
     var locationManager = CLLocationManager()
     var _selectedAnnotation: String?
-    var pois = [PointAnnotation]()
+    var pointAnnotationManager: PointAnnotationManager?
+    var pois = [MapboxPointAnnotation]()
     
     init(messenger: FlutterBinaryMessenger, frame: CGRect, viewId: Int64, args: Any?)
     {
@@ -101,7 +102,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             }
             else if(call.method == "setPOIs")
             {
-                
+                strongSelf.addPOIs(arguments: arguments, result: result)
             }
             else
             {
@@ -169,6 +170,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         navigationMapView.userLocationStyle = .puck2D()
         
         let mapView = navigationMapView.mapView
+        pointAnnotationManager = mapView?.annotations.makePointAnnotationManager()
+        pointAnnotationManager?.delegate = self
         
         if(self.arguments != nil)
         {
@@ -241,42 +244,52 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     }
     
     func addPOIs(arguments: NSDictionary?, result: @escaping FlutterResult){
-        let oPOIs = arguments?["poi"] as? NSDictionary ?? [:]
-        let image = arguments?["icon"] as? String ?? ""
-        let groupName = arguments?["group"] as? String ?? ""
         
-        let imageData = Data(base64Encoded: image)
-        let mapView = navigationMapView.mapView
-        let pointAnnotationManager = mapView?.annotations.makePointAnnotationManager()
-        
-        
-        for item in oPOIs as NSDictionary
+        if(self.arguments != nil)
         {
-            let point = item.value as! NSDictionary
-            guard let oName = point["Name"] as? String else {return}
-            guard let oLatitude = point["Latitude"] as? Double else {return}
-            guard let oLongitude = point["Longitude"] as? Double else {return}
+            let oPOIs = arguments?["poi"] as? NSDictionary ?? [:]
+            let image = arguments?["icon"] as? String ?? ""
+            let groupName = arguments?["group"] as? String ?? ""
+            let imageData = Data(base64Encoded: image)
+            var pointAnnot = [PointAnnotation]()
             
-            let centerCoordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
-            var customPointAnnotation = PointAnnotation(coordinate: centerCoordinate)
-            customPointAnnotation.image = .init(image: UIImage(data: imageData!)!, name: groupName)
-            customPointAnnotation.iconSize = 0.2
-            customPointAnnotation.textField = oName
-            customPointAnnotation.textSize = 12
-            customPointAnnotation.textOffset = [0, 2]
+            for item in oPOIs as NSDictionary
+            {
+                let point = item.value as! NSDictionary
+                guard let oName = point["Name"] as? String else {return}
+                guard let oLatitude = point["Latitude"] as? Double else {return}
+                guard let oLongitude = point["Longitude"] as? Double else {return}
+                
+                let centerCoordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
+                var customPointAnnotation = PointAnnotation(coordinate: centerCoordinate)
+                customPointAnnotation.image = .init(image: UIImage(data: imageData!)!, name: groupName)
+                customPointAnnotation.iconSize = 0.08
+                customPointAnnotation.textField = oName
+                customPointAnnotation.textSize = 12
+                customPointAnnotation.textOffset = [0, 2]
+                
+                pointAnnot.append(customPointAnnotation)
+            }
             
-            pois.append(customPointAnnotation)
+            var pointAnnotation: MapboxPointAnnotation = .init(name: groupName, annotation: pointAnnot)
+            pois.append(pointAnnotation)
+            pointAnnotationManager?.annotations = pointAnnot
         }
         
-        pointAnnotationManager?.delegate = self
-        pointAnnotationManager?.annotations = pois
-        
+        let mapView = navigationMapView.mapView
         mapView?.mapboxMap.onEvery(event: .cameraChanged, handler: { [weak self] _ in
             guard let self = self else { return }
             if((mapView?.cameraState.zoom)! < 7){
-                pointAnnotationManager?.annotations = []
+                self.pointAnnotationManager?.annotations = []
             } else if ((mapView?.cameraState.zoom)! > 7){
-                pointAnnotationManager?.annotations = self.pois
+                var pointAnnot = [PointAnnotation]()
+                
+                for point in self.pois
+                {
+                    pointAnnot.append(contentsOf: point.annotation)
+                }
+                
+                self.pointAnnotationManager?.annotations = pointAnnot
             }
         })
     }
@@ -565,9 +578,14 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
 extension FlutterMapboxNavigationView: AnnotationInteractionDelegate {
     public func annotationManager(_ manager: AnnotationManager, didDetectTappedAnnotations annotations: [Annotation]) {
-        _selectedAnnotation = pois.first(where: { value -> Bool in
-            value.id == annotations[0].id
-        })?.textField
+        for poi in pois {
+            for annotation in poi.annotation {
+                if(annotation.id == annotations[0].id){
+                    _selectedAnnotation = annotation.textField
+                    break
+                }
+            }
+        }
         sendEvent(eventType: MapBoxEventType.annotation_tapped)
     }
 }
