@@ -265,9 +265,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
     func onCameraChangeListener() {
         let mapView = navigationMapView.mapView
-        if((mapView?.cameraState.zoom)! < 7){
+        if((mapView?.cameraState.zoom)! < 6){
             self.pointAnnotationManager?.annotations = []
-        } else if ((mapView?.cameraState.zoom)! > 7){
+        } else if ((mapView?.cameraState.zoom)! > 6){
             var pointAnnot = [PointAnnotation]()
             for point in self.pois
             {
@@ -284,6 +284,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             let oPOIs = arguments?["poi"] as? NSDictionary ?? [:]
             let image = arguments?["icon"] as? String ?? ""
             let groupName = arguments?["group"] as? String ?? ""
+            let iconSize = arguments?["iconSize"] as? Double ?? 0.2
             let imageData = Data(base64Encoded: image)
             var pointAnnot = [PointAnnotation]()
             
@@ -297,7 +298,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 let centerCoordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
                 var customPointAnnotation = PointAnnotation(coordinate: centerCoordinate)
                 customPointAnnotation.image = .init(image: UIImage(data: imageData!)!, name: groupName)
-                customPointAnnotation.iconSize = 0.08
+                customPointAnnotation.iconSize = iconSize
                 customPointAnnotation.textField = oName
                 customPointAnnotation.textSize = 12
                 customPointAnnotation.textOffset = [0, 2]
@@ -321,6 +322,8 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 }
             }
         }
+        
+        pois.removeAll(where: { value -> Bool in value.name == groupName })
     }
     
     func updateCarmera(arguments: NSDictionary?, result: @escaping FlutterResult){
