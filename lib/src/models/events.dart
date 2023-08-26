@@ -20,5 +20,5 @@ enum MapBoxEvent {
   failed_to_reroute,
   reroute_along,
   annotation_tapped,
-  map_position_changed,
+  map_position_changed
 }

@@ -5,7 +5,9 @@ enum MapBoxEventType: Int, Codable
     case map_ready
     case route_building
     case route_built
-    case route_build_failed
+    case route_build_failed 
+    case route_build_cancelled
+    case route_build_no_routes_found
     case progress_change
     case user_off_route
     case milestone_event

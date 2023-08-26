@@ -1,3 +1,18 @@
+## 0.7.1
+
+* ios - remove pois work
+
+
+## 0.7.0
+
+* ios - fix for get centercoords
+
+
+## 0.6.9
+
+* ios - further poi annotation work
+
+       
 ## 0.6.8
 
 * ios - poi annotation work to match android

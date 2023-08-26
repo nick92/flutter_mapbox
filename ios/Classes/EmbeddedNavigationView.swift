@@ -69,10 +69,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             {
                 result(strongSelf._distanceRemaining)
             }
-            else if(call.method == "getCenterCoordinates")
-            {
-                result(strongSelf._distanceRemaining)
-            }
             else if(call.method == "getDurationRemaining")
             {
                 result(strongSelf._durationRemaining)
@@ -109,6 +105,10 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             else if(call.method == "setPOIs")
             {
                 strongSelf.addPOIs(arguments: arguments, result: result)
+            }
+            else if(call.method == "removePOIs")
+            {
+                strongSelf.removePOIs(arguments: arguments, result: result)
             }
             else
             {
@@ -258,12 +258,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
     func addOnMapIdleListener() {
         let mapView = navigationMapView.mapView
-        if mapMoved {
-            let coords = mapView?.mapboxMap.cameraState.center
-            centerCoords = [Double(coords?.longitude ?? 0), Double(coords?.latitude ?? 0)]
-            sendEvent(eventType: MapBoxEventType.map_position_changed)
-            mapMoved = false
-        }
+        let coords = mapView?.mapboxMap.cameraState.center
+        centerCoords = [Double(coords?.longitude ?? 0), Double(coords?.latitude ?? 0)]
+        sendEvent(eventType: MapBoxEventType.map_position_changed)
     }
 
     func onCameraChangeListener() {
@@ -278,7 +275,6 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             }
             self.pointAnnotationManager?.annotations = pointAnnot
         }
-        mapMoved = true
     }
     
     func addPOIs(arguments: NSDictionary?, result: @escaping FlutterResult){
@@ -312,6 +308,18 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             var pointAnnotation: MapboxPointAnnotation = .init(name: groupName, annotation: pointAnnot)
             pois.append(pointAnnotation)
             pointAnnotationManager?.annotations = pointAnnot
+        }
+    }
+    
+    func removePOIs(arguments: NSDictionary?, result: @escaping FlutterResult){
+        let groupName = arguments?["group"] as? String ?? ""
+        
+        for point in pois {
+            if(point.name == groupName){
+                for annot in point.annotation {
+                    pointAnnotationManager?.annotations.removeAll(where: { value -> Bool in value.id == annot.id })
+                }
+            }
         }
     }
     
