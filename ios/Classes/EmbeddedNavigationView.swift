@@ -286,7 +286,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             let groupName = arguments?["group"] as? String ?? ""
             let iconSize = arguments?["iconSize"] as? Double ?? 0.2
             let imageData = Data(base64Encoded: image)
-            var pointAnnot = [PointAnnotation]()
+            var pointAnnot = pointAnnotationManager?.annotations ?? []
             
             for item in oPOIs as NSDictionary
             {
