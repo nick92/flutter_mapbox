@@ -265,9 +265,9 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
     func onCameraChangeListener() {
         let mapView = navigationMapView.mapView
-        if((mapView?.cameraState.zoom)! < 6){
+        if((mapView?.cameraState.zoom)! < 8){
             self.pointAnnotationManager?.annotations = []
-        } else if ((mapView?.cameraState.zoom)! > 6){
+        } else if ((mapView?.cameraState.zoom)! > 8){
             var pointAnnot = [PointAnnotation]()
             for point in self.pois
             {
