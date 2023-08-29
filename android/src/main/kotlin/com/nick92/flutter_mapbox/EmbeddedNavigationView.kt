@@ -332,6 +332,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             "getSelectedAnnotation" -> {
                 result.success(selectedAnnotation)
             }
+            "getZoomLevel" -> {
+                result.success(zoomLevel)
+            }
             "reCenter" -> {
                 navigationCamera.requestNavigationCameraToOverview(
                     stateTransitionOptions = NavigationCameraTransitionOptions.Builder()
@@ -849,6 +852,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     var durationRemaining: Double? = null
     var centerCoords: MutableList<Double> = mutableListOf()
     var alternatives = true
+    var zoomLevel = 0.0
 
     var mapMoved = false
 
@@ -1267,6 +1271,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         if (mapMoved) {
             val coords = mapboxMap.cameraState.center
             centerCoords = mutableListOf(coords.longitude(), coords.latitude())
+            zoomLevel = mapboxMap.cameraState.zoom
             PluginUtilities.sendEvent(MapBoxEvents.MAP_POSITION_CHANGED)
             mapMoved = false
         }

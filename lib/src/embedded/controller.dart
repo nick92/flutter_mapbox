@@ -41,6 +41,11 @@ class MapBoxNavigationViewController {
       .invokeMethod<double>('getDistanceRemaining')
       .then<double>((dynamic result) => result);
 
+  ///Camera zoom level.
+  Future<double> get zoomLevel => _methodChannel
+      .invokeMethod<double>('getZoomLevel')
+      .then<double>((dynamic result) => result);
+
   ///Get currect coordinates of center view
   Future<List<Object?>> get centerCoordinates => _methodChannel
       .invokeMethod<List<Object?>>('getCenterCoordinates')
@@ -118,6 +123,7 @@ class MapBoxNavigationViewController {
   Future<bool> setPOI(
       {required String groupName,
       required String image,
+      required double iconSize,
       required List<WayPoint> wayPoints}) async {
     assert(wayPoints.isNotEmpty);
 
@@ -144,6 +150,7 @@ class MapBoxNavigationViewController {
     Map<String, dynamic> args = Map<String, dynamic>();
     args["group"] = groupName;
     args["icon"] = image;
+    args["iconSize"] = iconSize;
     args["poi"] = wayPointMap;
 
     return await _methodChannel

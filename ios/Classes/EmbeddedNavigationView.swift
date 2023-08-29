@@ -28,6 +28,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     var pois = [MapboxPointAnnotation]()
     var mapMoved = false
     var centerCoords: [Double] = []
+    var zoomLevel: Double = 0.0
     
     init(messenger: FlutterBinaryMessenger, frame: CGRect, viewId: Int64, args: Any?)
     {
@@ -76,6 +77,10 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             else if(call.method == "getCenterCoordinates")
             {
                 result(strongSelf.centerCoords)
+            }
+            else if(call.method == "getZoomLevel")
+            {
+                result(strongSelf.zoomLevel)
             }
             else if(call.method == "getRouteBuildResponse")
             {
@@ -260,6 +265,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         let mapView = navigationMapView.mapView
         let coords = mapView?.mapboxMap.cameraState.center
         centerCoords = [Double(coords?.longitude ?? 0), Double(coords?.latitude ?? 0)]
+        zoomLevel = mapView?.cameraState.zoom ?? 0
         sendEvent(eventType: MapBoxEventType.map_position_changed)
     }
 
