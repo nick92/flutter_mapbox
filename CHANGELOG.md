@@ -1,3 +1,32 @@
+## 0.7.7
+
+* pois - amend poi hide level ios
+
+
+## 0.7.6
+
+* pois - amend poi hid level
+
+
+## 0.7.5
+
+* pois - minor change to append annotations ios
+
+
+## 0.7.4
+
+* pois - hide on soom 
+
+
+## 0.7.3
+
+* pois - allow amend of icon size
+
+
+## 0.7.2
+
+* android - fix for plugin error
+
 ## 0.7.1
 
 * ios - remove pois work

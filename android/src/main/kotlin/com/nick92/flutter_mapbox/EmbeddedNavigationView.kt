@@ -32,12 +32,18 @@ import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.plugin.scalebar.scalebar
+import com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI
 import com.mapbox.navigation.base.TimeFormat
 import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
 import com.mapbox.navigation.base.options.NavigationOptions
 import com.mapbox.navigation.base.route.*
 import com.mapbox.navigation.base.trip.model.RouteProgress
+import com.mapbox.navigation.base.trip.model.eh.EHorizonPosition
+import com.mapbox.navigation.base.trip.model.roadobject.RoadObject
+import com.mapbox.navigation.base.trip.model.roadobject.RoadObjectEnterExitInfo
+import com.mapbox.navigation.base.trip.model.roadobject.RoadObjectPassInfo
+import com.mapbox.navigation.base.trip.model.roadobject.distanceinfo.RoadObjectDistanceInfo
 import com.mapbox.navigation.core.MapboxNavigation
 import com.mapbox.navigation.core.MapboxNavigationProvider
 import com.mapbox.navigation.core.directions.session.RoutesObserver
@@ -51,6 +57,7 @@ import com.mapbox.navigation.core.trip.session.LocationMatcherResult
 import com.mapbox.navigation.core.trip.session.LocationObserver
 import com.mapbox.navigation.core.trip.session.RouteProgressObserver
 import com.mapbox.navigation.core.trip.session.VoiceInstructionsObserver
+import com.mapbox.navigation.core.trip.session.eh.EHorizonObserver
 import com.mapbox.navigation.ui.base.util.MapboxNavigationConsumer
 import com.mapbox.navigation.ui.maneuver.api.MapboxManeuverApi
 import com.mapbox.navigation.ui.maneuver.view.MapboxManeuverView
@@ -419,9 +426,20 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                         return
                     }
 
+
+
                     FlutterMapboxPlugin.currentRoute = routes[0]
                     durationRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.duration()
                     distanceRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.distance()
+
+//                    var tolls = FlutterMapboxPlugin.currentRoute!!.directionsRoute.tollCosts()
+//
+//                    if(tolls != null) {
+//                        for (toll in tolls) {
+//                            var pm = toll.paymentMethods()
+//                            var currency = toll.currency()
+//                        }
+//                    }
 
                     PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT)
                     // Draw the route on the map
@@ -460,6 +478,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         if(arguments != null) {
             val groupName = arguments["group"] as? String
             val base64Image = arguments["icon"] as? String
+            var iconSize = arguments["iconSize"] as? Double
             val poiPoints = arguments["poi"] as? HashMap<*, *>
             var poiImage: ByteArray? = null
 
@@ -468,8 +487,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 poiImage = android.util.Base64.decode(it, 0)
             }
 
+            if(iconSize == null) {
+                iconSize = 0.2
+            }
+
             val image = BitmapFactory.decodeByteArray(poiImage, 0, poiImage!!.size)
-            addPOIAnnotations(groupName!!, image, poiPoints!!)
+            addPOIAnnotations(groupName!!, image, iconSize, poiPoints!!)
         }
         result.success(true)
     }
@@ -484,7 +507,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         result.success(true)
     }
 
-    private fun addPOIAnnotations(groupName: String, poiImage: Bitmap, pois: HashMap<*, *>) {
+    private fun addPOIAnnotations(groupName: String, poiImage: Bitmap, iconSize: Double, pois: HashMap<*, *>) {
 
         for (item in pois) {
             val poi = item.value as HashMap<*, *>
@@ -496,7 +519,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .withPoint(Point.fromLngLat(longitude, latitude))
                 .withIconImage(poiImage)
 
-            pointAnnotationOptions.iconSize = 0.2
+            pointAnnotationOptions.iconSize = iconSize
             pointAnnotationOptions.textOffset = listOf(0.0, 2.5)
             pointAnnotationOptions.textField = name
             pointAnnotationOptions.textSize = 12.0
@@ -535,7 +558,11 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             points.addAll(annotation)
         }
 
+        // remove points from annotationManage and listOfPoints
         pointAnnotationManager.delete(points)
+        listOfPoints.removeAll {
+            it.groupName == groupName
+        }
     }
 
     private fun containsName(nameToCheck: String): Boolean {
@@ -751,11 +778,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         val longPress = arguments["longPressDestinationEnabled"] as? Boolean
         if(longPress != null)
             longPressDestinationEnabled = longPress
-
-//        val poiPoints = arguments["poi"] as? HashMap<*, *>
-//
-//        if(poiPoints != null)
-//            addPOIAnnotations(poiPoints)
 
         var avoids = arguments["avoid"] as? List<String>
 
@@ -1240,6 +1262,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         false
     }
 
+
     private val addOnMapIdleListener = OnMapIdleListener {
         if (mapMoved) {
             val coords = mapboxMap.cameraState.center
@@ -1251,9 +1274,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
     private val onCameraChangeListener = OnCameraChangeListener {
         if (::pointAnnotationManager.isInitialized) {
-            if (mapboxMap.cameraState.zoom < 7 && pointAnnotationManager.annotations.isNotEmpty()) {
+            if (mapboxMap.cameraState.zoom < 8 && pointAnnotationManager.annotations.isNotEmpty()) {
                 pointAnnotationManager.deleteAll()
-            } else if (mapboxMap.cameraState.zoom > 7 && pointAnnotationManager.annotations.isEmpty()) {
+            } else if (mapboxMap.cameraState.zoom > 8 && pointAnnotationManager.annotations.isEmpty()) {
                 val points: MutableList<PointAnnotationOptions> = mutableListOf()
 
                 for(point in listOfPoints){
