@@ -265,7 +265,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         let mapView = navigationMapView.mapView
         let coords = mapView?.mapboxMap.cameraState.center
         centerCoords = [Double(coords?.longitude ?? 0), Double(coords?.latitude ?? 0)]
-        zoomLevel = mapView?.cameraState.zoom ?? 0
+        zoomLevel = Double(mapView?.cameraState.zoom ?? 0)
         sendEvent(eventType: MapBoxEventType.map_position_changed)
     }
 
