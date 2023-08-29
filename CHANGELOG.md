@@ -1,3 +1,13 @@
+## 0.7.9
+
+* return zoom level to flutter work
+
+
+## 0.7.8
+
+* pois - amend poi MAP_POSITION_CHANGED to under 12 zoom
+
+
 ## 0.7.7
 
 * pois - amend poi hide level ios
