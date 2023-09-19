@@ -472,7 +472,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     private fun beginFullScreenNavigation() {
-        activity?.let { FullscreenNavigationLauncher.startNavigation(it, wayPoints) }
+        activity.let { FullscreenNavigationLauncher.startNavigation(it, wayPoints) }
     }
 
     private fun addPOIs(methodCall: MethodCall, result: MethodChannel.Result) {
@@ -531,17 +531,17 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             pointAnnotaion.groupName = groupName
             pointAnnotaion.pointAnnotationOptions = pointAnnotationOptions
 
-            if(!containsName(name)) {
+            if (!containsName(name)) {
                 listOfPoints.add(pointAnnotaion)
             }
         }
 
         val points: MutableList<PointAnnotationOptions> = mutableListOf()
 
-        for(point in listOfPoints){
+        for (point in listOfPoints) {
             points.add(point.pointAnnotationOptions!!)
         }
-
+        
         // Add the resulting pointAnnotation to the map.
         pointAnnotationManager.create(points)
     }
@@ -852,7 +852,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     var durationRemaining: Double? = null
     var centerCoords: MutableList<Double> = mutableListOf()
     var alternatives = true
-    var zoomLevel = 0.0
 
     var mapMoved = false
 
@@ -876,6 +875,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     private var isBuildingRoute = false
     private var isNavigationInProgress = false
     private var isNavigationCanceled = false
+    private var zoomLevel = 0.0
 
     val BUTTON_ANIMATION_DURATION = 1500L
 
@@ -944,17 +944,17 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     private val pixelDensity = Resources.getSystem().displayMetrics.density
     private val overviewPadding: EdgeInsets by lazy {
         EdgeInsets(
-            140.0 * pixelDensity,
+            160.0 * pixelDensity,
             40.0 * pixelDensity,
-            120.0 * pixelDensity,
+            160.0 * pixelDensity,
             40.0 * pixelDensity
         )
     }
     private val landscapeOverviewPadding: EdgeInsets by lazy {
         EdgeInsets(
-            130.0 * pixelDensity,
+            140.0 * pixelDensity,
             380.0 * pixelDensity,
-            110.0 * pixelDensity,
+            130.0 * pixelDensity,
             20.0 * pixelDensity
         )
     }

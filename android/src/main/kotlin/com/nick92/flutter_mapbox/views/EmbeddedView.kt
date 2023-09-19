@@ -24,7 +24,6 @@ class EmbeddedView(context: Context, activity: Activity, lifecycle: Lifecycle, b
     : PlatformView, DefaultLifecycleObserver, EmbeddedNavigationView(context, activity, binding, accessToken) {
     private val viewId: Int = vId
     private val messenger: BinaryMessenger = binaryMessenger
-    private lateinit var channel: MethodChannel
     private val options: MapInitOptions = MapInitOptions(context)
     private val mapView: MapView = MapView(context, options)
 
@@ -59,7 +58,6 @@ class EmbeddedView(context: Context, activity: Activity, lifecycle: Lifecycle, b
     override fun dispose() {
         unregisterObservers();
         onDestroy();
-        channel.setMethodCallHandler(null);
     }
 
 }
