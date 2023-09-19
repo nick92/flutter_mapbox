@@ -457,7 +457,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         
         routeOptions.maximumHeight = Measurement(value: max_height, unit: .meters)
         routeOptions.maximumWidth = Measurement(value: max_width, unit: .meters)
-        routeOptions.maximumWeight = Measurement(value: max_weight, unit: .kilograms)
+        routeOptions.maximumWeight = Measurement(value: max_weight, unit: .metricTons)
 
         if (_allowsUTurnAtWayPoints != nil)
         {
@@ -719,7 +719,7 @@ extension FlutterMapboxNavigationView : UIGestureRecognizerDelegate {
         
         routeOptions.maximumHeight = Measurement(value: _maxHeight, unit: .meters)
         routeOptions.maximumWidth = Measurement(value: _maxWidth, unit: .meters)
-        routeOptions.maximumWeight = Measurement(value: _maxWeight, unit: .kilograms)
+        routeOptions.maximumWeight = Measurement(value: _maxWeight, unit: .metricTons)
 
         if(_avoid != nil)
         {
