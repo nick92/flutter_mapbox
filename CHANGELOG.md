@@ -1,3 +1,8 @@
+## 0.9.0
+
+* remove android deprecated methods
+
+
 ## 0.8.9
 
 * amend overview padding values

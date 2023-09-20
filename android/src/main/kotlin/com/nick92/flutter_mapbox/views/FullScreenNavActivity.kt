@@ -11,6 +11,7 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import com.mapbox.api.directions.v5.models.*
 import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
@@ -35,6 +36,7 @@ import com.mapbox.navigation.core.internal.MapboxNavigationSDK
 import com.mapbox.navigation.core.internal.telemetry.CustomEvent
 import com.mapbox.navigation.core.internal.telemetry.NavigationCustomEventType
 import com.mapbox.navigation.core.internal.telemetry.sendCustomEvent
+import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp
 import com.mapbox.navigation.core.replay.MapboxReplayer
 import com.mapbox.navigation.core.replay.ReplayLocationEngine
 import com.mapbox.navigation.core.replay.route.ReplayProgressObserver
@@ -120,26 +122,19 @@ class FullscreenNavActivity : AppCompatActivity() {
         }
 
         // initialize Mapbox Navigation
-        mapboxNavigation = if (MapboxNavigationProvider.isCreated()) {
-            MapboxNavigationProvider.retrieve()
-        } else {
-            if (FlutterMapboxPlugin.simulateRoute){
-                MapboxNavigationProvider.create(
-                    NavigationOptions.Builder(this.applicationContext)
-                        .accessToken(accessToken)
-                        // comment out the location engine setting block to disable simulation
-                        .locationEngine(replayLocationEngine)
-                        .build()
-                )
-            }else{
-                MapboxNavigationProvider.create(
-                    NavigationOptions.Builder(this.applicationContext)
-                        .accessToken(accessToken)
-                        .build()
-                )
-            }
+        MapboxNavigationApp.setup(
+            NavigationOptions.Builder(this.applicationContext)
+                .accessToken(accessToken)
+                .build()
+        )
 
-        }
+        MapboxNavigationApp
+            .setup(NavigationOptions.Builder(this.applicationContext)
+                .accessToken(accessToken)
+                .build())
+            .attach(this)
+
+        mapboxNavigation = MapboxNavigationApp.current()!!
 
         // initialize Navigation Camera
         viewportDataSource = MapboxNavigationViewportDataSource(mapboxMap)
@@ -211,7 +206,6 @@ class FullscreenNavActivity : AppCompatActivity() {
         )
         voiceInstructionsPlayer = MapboxVoiceInstructionsPlayer(
             this,
-            accessToken!!,
             FlutterMapboxPlugin.navigationLanguage
         )
 

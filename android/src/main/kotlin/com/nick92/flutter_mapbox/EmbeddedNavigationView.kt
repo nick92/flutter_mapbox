@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.bindgen.Expected
@@ -48,6 +49,9 @@ import com.mapbox.navigation.core.MapboxNavigation
 import com.mapbox.navigation.core.MapboxNavigationProvider
 import com.mapbox.navigation.core.directions.session.RoutesObserver
 import com.mapbox.navigation.core.formatter.MapboxDistanceFormatter
+import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp
+import com.mapbox.navigation.core.lifecycle.MapboxNavigationObserver
+import com.mapbox.navigation.core.lifecycle.requireMapboxNavigation
 import com.mapbox.navigation.core.replay.MapboxReplayer
 import com.mapbox.navigation.core.replay.ReplayLocationEngine
 import com.mapbox.navigation.core.replay.route.ReplayProgressObserver
@@ -127,22 +131,20 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         }
 
         // initialize Mapbox Navigation
-        mapboxNavigation = if (MapboxNavigationProvider.isCreated()) {
-            MapboxNavigationProvider.retrieve()
-        } else if (simulateRoute) {
-            MapboxNavigationProvider.create(
-                NavigationOptions.Builder(context)
-                    .accessToken(token)
-                    // .locationEngine(replayLocationEngine)
-                    .build()
-            )
-        } else {
-            MapboxNavigationProvider.create(
-                NavigationOptions.Builder(context)
+        MapboxNavigationApp.setup(
+            NavigationOptions.Builder(context)
                     .accessToken(token)
                     .build()
-            )
-        }
+        )
+
+        MapboxNavigationApp
+            .setup(NavigationOptions.Builder(context)
+                    .accessToken(token)
+                    .build())
+            .attach(this.activity as LifecycleOwner)
+
+
+        mapboxNavigation = MapboxNavigationApp.current()!!
 
         // initialize Navigation Camera
         viewportDataSource = MapboxNavigationViewportDataSource(mapboxMap)
@@ -212,7 +214,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         )
         voiceInstructionsPlayer = MapboxVoiceInstructionsPlayer(
             activity,
-            token,
             navigationLanguage
         )
 
