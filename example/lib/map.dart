@@ -15,11 +15,11 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
   String _platformVersion = 'Unknown';
   String? _instruction = "";
 
-  final _home =
-      WayPoint(name: "Home", latitude: 53.2110237, longitude: -2.8944236);
+  final _home = WayPoint(
+      id: "1", name: "Home", latitude: 53.2110237, longitude: -2.8944236);
 
-  final _store =
-      WayPoint(name: "Padeswood", latitude: 53.217260, longitude: -2.851740);
+  final _store = WayPoint(
+      id: "2", name: "Padeswood", latitude: 53.701198, longitude: -2.461296);
 
 // -2.8944236,53.2110237;-3.0580621,53.1568208
 
@@ -73,10 +73,10 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
 
       List<WayPoint> pois = [];
 
-      pois.add(
-          WayPoint(name: "HOME", latitude: 53.211025, longitude: -2.894550));
-      pois.add(
-          WayPoint(name: "DEST", latitude: 53.156082, longitude: -3.063002));
+      pois.add(WayPoint(
+          id: "1", name: "HOME", latitude: 53.211025, longitude: -2.894550));
+      pois.add(WayPoint(
+          id: "2", name: "DEST", latitude: 53.446895, longitude: -2.629369));
 
       _directions = MapBoxNavigation(onRouteEvent: _onEmbeddedRouteEvent);
       var options = MapBoxOptions(
@@ -179,6 +179,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                             if (!_poisShowing) {
                               _controller!.setPOI(
                                   groupName: "petrol",
+                                  iconSize: 0.2,
                                   image: bytes,
                                   wayPoints: _pois);
                             } else {
@@ -299,15 +300,18 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
 
     switch (e.eventType) {
       case MapBoxEvent.annotation_tapped:
-        var annotation = _controller!.selectedAnnotation;
+        var annotation = await _controller!.selectedAnnotation;
         print(annotation);
         break;
       case MapBoxEvent.map_position_changed:
         var coords = await _controller!.centerCoordinates;
+        var zoom = await _controller!.zoomLevel;
         print("lat:" +
             coords.first.toString() +
             " lon:" +
-            coords.last.toString());
+            coords.last.toString() +
+            "zoom:" +
+            zoom.toString());
         break;
       case MapBoxEvent.progress_change:
         var progressEvent = e.data as RouteProgressEvent;

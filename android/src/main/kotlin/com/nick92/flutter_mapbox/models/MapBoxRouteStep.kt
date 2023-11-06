@@ -13,5 +13,6 @@ class MapBoxRouteStep(val step: LegStep) {
 
 class MapBoxPointAnnotaions() {
     var groupName: String = ""
+    var id: String = ""
     var pointAnnotationOptions: PointAnnotationOptions? = null
 }

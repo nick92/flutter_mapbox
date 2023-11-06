@@ -297,6 +297,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
             for item in oPOIs as NSDictionary
             {
                 let point = item.value as! NSDictionary
+                guard let oID = point["Id"] as? String else {return}
                 guard let oName = point["Name"] as? String else {return}
                 guard let oLatitude = point["Latitude"] as? Double else {return}
                 guard let oLongitude = point["Longitude"] as? Double else {return}
@@ -312,7 +313,7 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 pointAnnot.append(customPointAnnotation)
             }
             
-            var pointAnnotation: MapboxPointAnnotation = .init(name: groupName, annotation: pointAnnot)
+            var pointAnnotation: MapboxPointAnnotation = .init(id: oID, name: groupName, annotation: pointAnnot)
             pois.append(pointAnnotation)
             pointAnnotationManager?.annotations = pointAnnot
         }

@@ -512,9 +512,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     private fun addPOIAnnotations(groupName: String, poiImage: Bitmap, iconSize: Double, pois: HashMap<*, *>) {
-
         for (item in pois) {
             val poi = item.value as HashMap<*, *>
+            val id = poi["Id"] as String
             val name = poi["Name"] as String
             val latitude = poi["Latitude"] as Double
             val longitude = poi["Longitude"] as Double
@@ -529,10 +529,11 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             pointAnnotationOptions.textSize = 12.0
 
             val pointAnnotaion = MapBoxPointAnnotaions()
+            pointAnnotaion.id = id
             pointAnnotaion.groupName = groupName
             pointAnnotaion.pointAnnotationOptions = pointAnnotationOptions
 
-            if (!containsName(name)) {
+            if (!containsName(id)) {
                 listOfPoints.add(pointAnnotaion)
             }
         }
@@ -571,7 +572,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
     private fun containsName(nameToCheck: String): Boolean {
         for (point in listOfPoints) {
-            if (point.pointAnnotationOptions!!.textField == nameToCheck) {
+            if (point.id == nameToCheck) {
                 return true
             }
         }
@@ -1297,7 +1298,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     private val onPointAnnotationClickListener = OnPointAnnotationClickListener { annotation ->
-        selectedAnnotation = annotation.textField!!
+        val point = listOfPoints.filter {
+            it.pointAnnotationOptions!!.getPoint()!!.latitude() == annotation.point.latitude() &&
+                    it.pointAnnotationOptions!!.getPoint()!!.longitude() == annotation.point.longitude()
+        }
+
+        selectedAnnotation = point.first().id
         PluginUtilities.sendEvent(MapBoxEvents.ANNOTATION_TAPPED)
         false
     }

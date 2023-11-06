@@ -1,3 +1,15 @@
+## 0.9.3
+
+* android annotiation id work
+
+## 0.9.2
+
+* roll-back mapbox version
+
+## 0.9.1
+
+* add id to waypoints object 
+
 ## 0.9.0
 
 * remove android deprecated methods
