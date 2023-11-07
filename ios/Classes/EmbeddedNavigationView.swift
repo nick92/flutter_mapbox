@@ -303,17 +303,27 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
                 guard let oLongitude = point["Longitude"] as? Double else {return}
                 
                 let centerCoordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
-                var customPointAnnotation = PointAnnotation(coordinate: centerCoordinate)
+                var customPointAnnotation = PointAnnotation(id: oID, coordinate: centerCoordinate)
                 customPointAnnotation.image = .init(image: UIImage(data: imageData!)!, name: groupName)
                 customPointAnnotation.iconSize = iconSize
                 customPointAnnotation.textField = oName
                 customPointAnnotation.textSize = 12
-                customPointAnnotation.textOffset = [0, 2]
+                customPointAnnotation.textOffset = [0, 3]
+                
+                if let style = _mapStyleUrlDay {
+                    if style.contains("night") {
+                        customPointAnnotation.textColor = StyleColor.init(.white)
+                        customPointAnnotation.textHaloColor = StyleColor.init(.black)
+                    } else {
+                        customPointAnnotation.textColor = StyleColor.init(.black)
+                        customPointAnnotation.textHaloColor = StyleColor.init(.white)
+                    }
+                    customPointAnnotation.textHaloWidth = 1
+                }
                 
                 pointAnnot.append(customPointAnnotation)
             }
-            
-            var pointAnnotation: MapboxPointAnnotation = .init(id: oID, name: groupName, annotation: pointAnnot)
+            let pointAnnotation: MapboxPointAnnotation = .init(name: groupName, annotation: pointAnnot)
             pois.append(pointAnnotation)
             pointAnnotationManager?.annotations = pointAnnot
         }
@@ -620,7 +630,7 @@ extension FlutterMapboxNavigationView: AnnotationInteractionDelegate {
         for poi in pois {
             for annotation in poi.annotation {
                 if(annotation.id == annotations[0].id){
-                    _selectedAnnotation = annotation.textField
+                    _selectedAnnotation = annotation.id
                     break
                 }
             }
