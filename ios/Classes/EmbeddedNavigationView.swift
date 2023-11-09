@@ -770,11 +770,7 @@ class UnscrambledRouteOptions: NavigationRouteOptions {
         
         return items
     }
-    
-    required convenience init(from decoder: Decoder) throws {
-        try self.init(from: decoder)
-    }
-    
+        
     func setExcludes(array: [String]) {
         excludePoints = array
     }
