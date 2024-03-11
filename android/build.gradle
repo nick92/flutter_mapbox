@@ -2,7 +2,8 @@ group 'com.nick92.flutter_mapbox'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.6.10'
+    ext.kotlin_version = '1.7.10'
+    ext.android_gradle_version = '7.4.2'
     repositories {
         google()
         mavenCentral()
@@ -22,8 +23,9 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.2.0'
+        classpath "com.android.tools.build:gradle:$android_gradle_version"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "com.mapbox.gradle.plugins:access-token:0.4.0"
     }
 }
 
@@ -68,16 +70,23 @@ android {
 
     defaultConfig {
         minSdkVersion 21
+        targetSdkVersion 33
+        multiDexEnabled true
     }
 
     buildFeatures{
         viewBinding = true
     }
+
+    lintOptions {
+        disable 'InvalidPackage'
+        abortOnError false
+    }
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation ("com.mapbox.navigation:android:2.11.0") {
+    implementation ("com.mapbox.navigation:android:2.18.0") {
         exclude group: 'com.mapbox.plugin', module: 'maps-lifecycle'
     }
     implementation ('com.mapbox.mapboxsdk:mapbox-android-sdk:9.0.0') {

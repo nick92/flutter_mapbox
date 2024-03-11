@@ -1,8 +1,10 @@
 package com.nick92.flutter_mapbox
 
+import android.Manifest
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.res.AssetManager
 import android.content.res.Configuration
 import android.content.res.Resources
@@ -13,6 +15,8 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.mapbox.api.directions.v5.DirectionsCriteria
@@ -89,6 +93,7 @@ import com.mapbox.navigation.ui.voice.model.SpeechError
 import com.mapbox.navigation.ui.voice.model.SpeechValue
 import com.mapbox.navigation.ui.voice.model.SpeechVolume
 import com.mapbox.navigation.ui.voice.view.MapboxSoundButton
+import com.nick92.flutter_mapbox.FlutterMapboxPlugin.Companion.PERMISSION_REQUEST_CODE
 import com.nick92.flutter_mapbox.databinding.MapActivityBinding
 import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxPointAnnotaions
@@ -292,7 +297,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         mapboxMap.addOnCameraChangeListener(onCameraChangeListener)
         // initialize navigation trip observers
         registerObservers()
-        mapboxNavigation.startTripSession(withForegroundService = false)
+
+        checkPermissionAndStartTrip(false)
     }
 
     override fun onMethodCall(methodCall: MethodCall, result: MethodChannel.Result) {
@@ -524,9 +530,19 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 .withIconImage(poiImage)
 
             pointAnnotationOptions.iconSize = iconSize
-            pointAnnotationOptions.textOffset = listOf(0.0, 2.5)
+            pointAnnotationOptions.textOffset = listOf(0.0, 3.0)
             pointAnnotationOptions.textField = name
             pointAnnotationOptions.textSize = 12.0
+
+            if(FlutterMapboxPlugin.mapStyleUrlDay?.contains("night") == true) {
+                pointAnnotationOptions.textColor = "white"
+                pointAnnotationOptions.textHaloColor = "black"
+            }
+            else {
+                pointAnnotationOptions.textColor = "black"
+                pointAnnotationOptions.textHaloColor = "white"
+            }
+            pointAnnotationOptions.textHaloWidth = 1.0
 
             val pointAnnotaion = MapBoxPointAnnotaions()
             pointAnnotaion.id = id
@@ -581,7 +597,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
     private fun moveCameraToOriginOfRoute() {
         FlutterMapboxPlugin.currentRoute?.let {
-            val originCoordinate = it.routeOptions?.coordinatesList()?.get(0)
+            val originCoordinate = it.routeOptions.coordinatesList().get(0)
             originCoordinate?.let {
                 val location = LatLng(originCoordinate.latitude(), originCoordinate.longitude())
                 updateCamera(location)
@@ -628,6 +644,21 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         }
     }
 
+    private fun checkPermissionAndStartTrip(withForegroundService: Boolean){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val hasPermission =
+                activity.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+            if (hasPermission != PackageManager.PERMISSION_GRANTED) {
+                //_activity.onRequestPermissionsResult((a,b,c) => onRequestPermissionsResult)
+                activity.requestPermissions(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    PERMISSION_REQUEST_CODE
+                )
+            }
+        }
+        mapboxNavigation.startTripSession(withForegroundService)
+    }
+
     private fun startNavigation() {
         isNavigationCanceled = false
 
@@ -635,7 +666,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             if (simulateRoute) {
                 mapboxReplayer.play()
             }
-            mapboxNavigation.startTripSession()
+
+            checkPermissionAndStartTrip(true)
             // show UI elements
             binding.soundButton.visibility = View.VISIBLE
             binding.routeOverview.visibility = View.VISIBLE

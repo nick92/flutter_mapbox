@@ -1,3 +1,18 @@
+## 0.9.6
+
+* fix for ios crashes
+
+
+## 0.9.5
+
+* android poi amend text color based on appearance 
+
+
+## 0.9.4
+
+* ios annotiation id work
+* ios poi amend text color based on appearance 
+
 ## 0.9.3
 
 * android annotiation id work
