@@ -8,7 +8,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.NonNull
 import androidx.lifecycle.Lifecycle
-import com.nick92.flutter_mapbox.views.EmbeddedViewFactory
+import com.nick92.flutter_mapbox.views.FlutterMapboxFactory
 
 import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.DirectionsRoute
@@ -232,7 +232,11 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
     if (platformViewRegistry != null && binaryMessenger != null && currentActivity != null && lifecycle != null) {
       platformViewRegistry?.registerViewFactory(
         view_name,
-        EmbeddedViewFactory(binaryMessenger!!, currentActivity!!, lifecycle!!)
+        FlutterMapboxFactory(
+          binaryMessenger!!,
+          currentActivity!!,
+          lifecycle!!
+        )
       )
     }
   }

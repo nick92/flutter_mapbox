@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mapbox/flutter_mapbox.dart';
-import 'package:location/location.dart';
 
 class SampleNavigationApp extends StatefulWidget {
   @override
@@ -44,32 +43,12 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initialize() async {
     try {
-      Location location = Location();
       // If the widget was removed from the tree while the asynchronous platform
       // message was in flight, we want to discard the reply rather than calling
       // setState to update our non-existent appearance.
       if (!mounted) return;
 
       bool _serviceEnabled;
-      PermissionStatus _permissionGranted;
-      LocationData _locationData;
-
-      _serviceEnabled = await location.serviceEnabled();
-      if (!_serviceEnabled) {
-        _serviceEnabled = await location.requestService();
-        if (!_serviceEnabled) {
-          return;
-        }
-      }
-
-      _permissionGranted = await location.hasPermission();
-      if (_permissionGranted == PermissionStatus.denied) {
-        _permissionGranted = await location.requestPermission();
-        if (_permissionGranted != PermissionStatus.granted) {
-          return;
-        }
-      }
-      _locationData = await location.getLocation();
 
       List<WayPoint> pois = [];
 
@@ -96,7 +75,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
           simulateRoute: false,
           longPressDestinationEnabled: true,
           // pois: _pois,
-          mapStyleUrlDay: "mapbox://styles/mapbox/navigation-day-v1",
+          mapStyleUrlDay: "mapbox://styles/mapbox/navigation-night-v1",
           mapStyleUrlNight: "mapbox://styles/mapbox/navigation-night-v1",
           language: "en-GB");
 

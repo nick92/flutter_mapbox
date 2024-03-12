@@ -23,7 +23,6 @@ import com.mapbox.api.directions.v5.DirectionsCriteria
 import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.bindgen.Expected
 import com.mapbox.geojson.Point
-import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.maps.*
 import com.mapbox.maps.plugin.LocationPuck2D
 import com.mapbox.maps.plugin.animation.MapAnimationOptions
@@ -599,8 +598,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         FlutterMapboxPlugin.currentRoute?.let {
             val originCoordinate = it.routeOptions.coordinatesList().get(0)
             originCoordinate?.let {
-                val location = LatLng(originCoordinate.latitude(), originCoordinate.longitude())
-                updateCamera(location)
+//                val location = LatLng(originCoordinate.latitude(), originCoordinate.longitude())
+//                updateCamera(location)
             }
         }
     }
@@ -707,23 +706,23 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             var latitude = arguments["latitude"] as Double;
             var longitude = arguments["longitude"] as Double;
 
-            updateCamera(LatLng(latitude, longitude));
+//            updateCamera(LatLng(latitude, longitude));
         }
     }
 
-    private fun updateCamera(location: LatLng) {
-        val mapAnimationOptions = MapAnimationOptions.Builder().duration(1500L).build()
-        mapView.camera.easeTo(
-            CameraOptions.Builder()
-                // Centers the camera to the lng/lat specified.
-                .center(Point.fromLngLat(location.longitude, location.latitude))
-                // specifies the zoom value. Increase or decrease to zoom in or zoom out
-                .zoom(zoom)
-                // specify frame of reference from the center.
-                .build(),
-            mapAnimationOptions
-        )
-    }
+//    private fun updateCamera(location: LatLng) {
+//        val mapAnimationOptions = MapAnimationOptions.Builder().duration(1500L).build()
+//        mapView.camera.easeTo(
+//            CameraOptions.Builder()
+//                // Centers the camera to the lng/lat specified.
+//                .center(Point.fromLngLat(location.longitude, location.latitude))
+//                // specifies the zoom value. Increase or decrease to zoom in or zoom out
+//                .zoom(zoom)
+//                // specify frame of reference from the center.
+//                .build(),
+//            mapAnimationOptions
+//        )
+//    }
 
     private fun setOptions(arguments: Map<*, *>)
     {
@@ -1148,8 +1147,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             // it's best to immediately move the camera to the current user location
             if (!firstLocationUpdateReceived) {
                 firstLocationUpdateReceived = true
-                val location = LatLng(enhancedLocation.latitude, enhancedLocation.longitude)
-                updateCamera(location)
+//                val location = LatLng(enhancedLocation.latitude, enhancedLocation.longitude)
+//                updateCamera(location)
             }
         }
     }

@@ -1,10 +1,13 @@
 package com.nick92.flutter_mapbox.views
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.*
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.location.Location
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
@@ -72,7 +75,7 @@ import com.mapbox.navigation.ui.voice.model.SpeechValue
 import com.mapbox.navigation.ui.voice.model.SpeechVolume
 import com.nick92.flutter_mapbox.FlutterMapboxPlugin
 import com.nick92.flutter_mapbox.R
-import com.nick92.flutter_mapbox.databinding.MapActivityBinding
+import com.nick92.flutter_mapbox.databinding.NavigationActivityBinding
 import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
@@ -91,13 +94,13 @@ class FullscreenNavActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setTheme(R.style.Theme_AppCompat_NoActionBar)
-        binding = MapActivityBinding.inflate(layoutInflater)
+        binding = NavigationActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
         accessToken = PluginUtilities.getResourceFromContext(this.applicationContext, "mapbox_access_token")
-        mapboxMap = binding.mapView.getMapboxMap()
+//        mapboxMap = binding.navigationView.map
 
-        binding.mapView.compass.enabled = false
-        binding.mapView.scalebar.enabled = false
+//        binding.mapView.compass.enabled = false
+//        binding.mapView.scalebar.enabled = false
 
         receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -110,16 +113,16 @@ class FullscreenNavActivity : AppCompatActivity() {
         if(p != null) points = p
 
         // initialize the location puck
-        binding.mapView.location.apply {
-            this.locationPuck = LocationPuck2D(
-                bearingImage = ContextCompat.getDrawable(
-                    this@FullscreenNavActivity,
-                    R.drawable.mapbox_navigation_puck_icon
-                )
-            )
-            setLocationProvider(navigationLocationProvider)
-            enabled = true
-        }
+//        binding.mapView.location.apply {
+//            this.locationPuck = LocationPuck2D(
+//                bearingImage = ContextCompat.getDrawable(
+//                    this@FullscreenNavActivity,
+//                    R.drawable.mapbox_navigation_puck_icon
+//                )
+//            )
+//            setLocationProvider(navigationLocationProvider)
+//            enabled = true
+//        }
 
         // initialize Mapbox Navigation
         MapboxNavigationApp.setup(
@@ -135,79 +138,6 @@ class FullscreenNavActivity : AppCompatActivity() {
             .attach(this)
 
         mapboxNavigation = MapboxNavigationApp.current()!!
-
-        // initialize Navigation Camera
-        viewportDataSource = MapboxNavigationViewportDataSource(mapboxMap)
-        navigationCamera = NavigationCamera(
-            mapboxMap,
-            binding.mapView.camera,
-            viewportDataSource
-        )
-        // set the animations lifecycle listener to ensure the NavigationCamera stops
-        // automatically following the user location when the map is interacted with
-        binding.mapView.camera.addCameraAnimationsLifecycleListener(
-            NavigationBasicGesturesHandler(navigationCamera)
-        )
-        navigationCamera.registerNavigationCameraStateChangeObserver { navigationCameraState ->
-            // shows/hide the recenter button depending on the camera state
-            when (navigationCameraState) {
-                NavigationCameraState.TRANSITION_TO_FOLLOWING,
-                NavigationCameraState.FOLLOWING -> binding.recenter.visibility = View.INVISIBLE
-                NavigationCameraState.TRANSITION_TO_OVERVIEW,
-                NavigationCameraState.OVERVIEW,
-                NavigationCameraState.IDLE -> binding.recenter.visibility = View.VISIBLE
-            }
-        }
-        // set the padding values depending on screen orientation and visible view layout
-        if (this.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            viewportDataSource.overviewPadding = landscapeOverviewPadding
-        } else {
-            viewportDataSource.overviewPadding = overviewPadding
-        }
-        if (this.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            viewportDataSource.followingPadding = landscapeFollowingPadding
-        } else {
-            viewportDataSource.followingPadding = followingPadding
-        }
-
-        // make sure to use the same DistanceFormatterOptions across different features
-        distanceFormatterOptions = mapboxNavigation.navigationOptions.distanceFormatterOptions
-
-        speedInfoApi = MapboxSpeedInfoApi()
-
-        // initialize maneuver api that feeds the data to the top banner maneuver view
-        maneuverApi = MapboxManeuverApi(
-            MapboxDistanceFormatter(distanceFormatterOptions)
-        )
-
-        // initialize bottom progress view
-        tripProgressApi = MapboxTripProgressApi(
-            TripProgressUpdateFormatter.Builder(this)
-                .distanceRemainingFormatter(
-                    DistanceRemainingFormatter(distanceFormatterOptions)
-                )
-                .timeRemainingFormatter(
-                    TimeRemainingFormatter(this)
-                )
-                .percentRouteTraveledFormatter(
-                    PercentDistanceTraveledFormatter()
-                )
-                .estimatedTimeToArrivalFormatter(
-                    EstimatedTimeToArrivalFormatter(this, TimeFormat.NONE_SPECIFIED)
-                )
-                .build()
-        )
-
-        // initialize voice instructions api and the voice instruction player
-        speechApi = MapboxSpeechApi(
-            this,
-            accessToken!!,
-            FlutterMapboxPlugin.navigationLanguage
-        )
-        voiceInstructionsPlayer = MapboxVoiceInstructionsPlayer(
-            this,
-            FlutterMapboxPlugin.navigationLanguage
-        )
 
         // initialize route line, the withRouteLineBelowLayerId is specified to place
         // the route line below road labels layer on the map
@@ -225,36 +155,13 @@ class FullscreenNavActivity : AppCompatActivity() {
 
         var styleUrl = FlutterMapboxPlugin.mapStyleUrlDay
         if (styleUrl == null) styleUrl = Style.MAPBOX_STREETS
-        // load map style
-        mapboxMap.loadStyleUri(
-            styleUrl
-        ) {
-            if(FlutterMapboxPlugin.allowsClickToSetDestination)
-            {
-                // add long click listener that search for a route to the clicked destination
-                binding.mapView.gestures.addOnMapLongClickListener { point ->
-                    findRoute(point)
-                    true
-                }
-            }
-        }
 
-        // initialize view interactions
-        binding.stop.setOnClickListener {
-            clearRouteAndStopNavigation()
-        }
-        binding.recenter.setOnClickListener {
-            navigationCamera.requestNavigationCameraToFollowing()
-            binding.routeOverview.showTextAndExtend(BUTTON_ANIMATION_DURATION)
-        }
-        binding.routeOverview.setOnClickListener {
-            navigationCamera.requestNavigationCameraToOverview()
-            binding.recenter.showTextAndExtend(BUTTON_ANIMATION_DURATION)
-        }
-        binding.soundButton.setOnClickListener {
-            // mute/unmute voice instructions
-            isVoiceInstructionsMuted = !isVoiceInstructionsMuted
-        }
+        var styleUrlDay = FlutterMapboxPlugin.mapStyleUrlDay
+        var styleUrlNight = FlutterMapboxPlugin.mapStyleUrlNight
+
+        // set map style
+        binding.navigationView.customizeViewStyles {}
+
     }
 
     override fun onStart() {
@@ -285,8 +192,6 @@ class FullscreenNavActivity : AppCompatActivity() {
 
         // stop screen from turning off when navigating
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        binding.soundButton.unmute()
 
         // if current route is set then use it, if not then query route
         if(FlutterMapboxPlugin.currentRoute != null){
@@ -422,17 +327,32 @@ class FullscreenNavActivity : AppCompatActivity() {
         )
     }
 
+    private fun checkPermissionAndStartNavigation(withForegroundService: Boolean){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val hasPermission =
+                this.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+            if (hasPermission != PackageManager.PERMISSION_GRANTED) {
+                //_activity.onRequestPermissionsResult((a,b,c) => onRequestPermissionsResult)
+                this.requestPermissions(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    FlutterMapboxPlugin.PERMISSION_REQUEST_CODE
+                )
+            }
+        }
+        mapboxNavigation.startTripSession(withForegroundService)
+    }
+
     private fun setRoutesAndStartNavigation(routes: List<NavigationRoute>) {
         // set routes, where the first route in the list is the primary route that
         // will be used for active guidance
         mapboxNavigation.setNavigationRoutes(routes)
 
         // show UI elements
-        binding.soundButton.visibility = View.VISIBLE
-        binding.routeOverview.visibility = View.VISIBLE
-        binding.tripProgressView.visibility = View.VISIBLE
+//        binding.soundButton.visibility = View.VISIBLE
+//        binding.routeOverview.visibility = View.VISIBLE
+//        binding.tripProgressView.visibility = View.VISIBLE
 
-        mapboxNavigation.startTripSession()
+        checkPermissionAndStartNavigation(true)
 
         sendEvent(MapBoxEvents.NAVIGATION_RUNNING)
     }
@@ -443,11 +363,11 @@ class FullscreenNavActivity : AppCompatActivity() {
         mapboxNavigation.setNavigationRoutes(listOf(route))
 
         // show UI elements
-        binding.soundButton.visibility = View.VISIBLE
-        binding.routeOverview.visibility = View.VISIBLE
-        binding.tripProgressView.visibility = View.VISIBLE
+//        binding.soundButton.visibility = View.VISIBLE
+//        binding.routeOverview.visibility = View.VISIBLE
+//        binding.tripProgressView.visibility = View.VISIBLE
 
-        mapboxNavigation.startTripSession()
+        checkPermissionAndStartNavigation(true)
 
         sendEvent(MapBoxEvents.NAVIGATION_RUNNING)
     }
@@ -460,10 +380,10 @@ class FullscreenNavActivity : AppCompatActivity() {
         mapboxReplayer.stop()
 
         // hide UI elements
-        binding.soundButton.visibility = View.INVISIBLE
-        binding.maneuverView.visibility = View.INVISIBLE
-        binding.routeOverview.visibility = View.INVISIBLE
-        binding.tripProgressView.visibility = View.INVISIBLE
+//        binding.soundButton.visibility = View.INVISIBLE
+//        binding.maneuverView.visibility = View.INVISIBLE
+//        binding.routeOverview.visibility = View.INVISIBLE
+//        binding.tripProgressView.visibility = View.INVISIBLE
 
         sendEvent(MapBoxEvents.NAVIGATION_CANCELLED)
 
@@ -510,7 +430,7 @@ class FullscreenNavActivity : AppCompatActivity() {
     /**
      * Bindings to the Navigation Activity.
      */
-    private lateinit var binding: MapActivityBinding// MapboxActivityTurnByTurnExperienceBinding
+    private lateinit var binding: NavigationActivityBinding// MapboxActivityTurnByTurnExperienceBinding
 
     /**
      * Mapbox Maps entry point obtained from the [MapView].
@@ -609,21 +529,6 @@ class FullscreenNavActivity : AppCompatActivity() {
     private lateinit var routeArrowView: MapboxRouteArrowView
 
     /**
-     * Stores and updates the state of whether the voice instructions should be played as they come or muted.
-     */
-    private var isVoiceInstructionsMuted = false
-        set(value) {
-            field = value
-            if (value) {
-                binding.soundButton.muteAndExtend(BUTTON_ANIMATION_DURATION)
-                voiceInstructionsPlayer.volume(SpeechVolume(0f))
-            } else {
-                binding.soundButton.unmuteAndExtend(BUTTON_ANIMATION_DURATION)
-                voiceInstructionsPlayer.volume(SpeechVolume(1f))
-            }
-        }
-
-    /**
      * Extracts message that should be communicated to the driver about the upcoming maneuver.
      * When possible, downloads a synthesized audio file that can be played back to the driver.
      */
@@ -717,8 +622,8 @@ class FullscreenNavActivity : AppCompatActivity() {
                 )
             }
 
-            val value = speedInfoApi.updatePostedAndCurrentSpeed(locationMatcherResult, distanceFormatterOptions)
-            binding.speedLimitView.render(value)
+//            val value = speedInfoApi.updatePostedAndCurrentSpeed(locationMatcherResult, distanceFormatterOptions)
+//            binding.navigationView.speedLimitView.render(value)
         }
     }
 
@@ -726,45 +631,17 @@ class FullscreenNavActivity : AppCompatActivity() {
      * Gets notified with progress along the currently active route.
      */
     private val routeProgressObserver = RouteProgressObserver { routeProgress ->
-        // update the camera position to account for the progressed fragment of the route
-        viewportDataSource.onRouteProgressChanged(routeProgress)
-        viewportDataSource.evaluate()
+        // update flutter events
+        try {
+            FlutterMapboxPlugin.distanceRemaining = routeProgress.distanceRemaining
+            FlutterMapboxPlugin.durationRemaining = routeProgress.durationRemaining
 
-        // draw the upcoming maneuver arrow on the map
-        val style = mapboxMap.getStyle()
-        if (style != null) {
-            val maneuverArrowResult = routeArrowApi.addUpcomingManeuverArrow(routeProgress)
-            routeArrowView.renderManeuverUpdate(style, maneuverArrowResult)
+            val progressEvent = MapBoxRouteProgressEvent(routeProgress)
+            PluginUtilities.sendEvent(progressEvent)
+        } catch (_: java.lang.Exception) {
+            // handle this error
         }
-
-        // update top banner with maneuver instructions
-        val maneuvers = maneuverApi.getManeuvers(routeProgress)
-        maneuvers.fold(
-            { error ->
-                Toast.makeText(
-                    this@FullscreenNavActivity,
-                    error.errorMessage,
-                    Toast.LENGTH_SHORT
-                ).show()
-            },
-            {
-                binding.maneuverView.visibility = View.VISIBLE
-                binding.maneuverView.renderManeuvers(maneuvers)
-            }
-        )
-
-        //Notify the client
-        val progressEvent = MapBoxRouteProgressEvent(routeProgress)
-        FlutterMapboxPlugin.distanceRemaining = routeProgress.distanceRemaining
-        FlutterMapboxPlugin.durationRemaining = routeProgress.durationRemaining
-        sendEvent(progressEvent)
-
-        // update bottom trip progress summary
-        binding.tripProgressView.render(
-            tripProgressApi.getTripProgress(routeProgress)
-        )
     }
-
     /**
      * Gets notified whenever the tracked routes change.
      *
@@ -775,33 +652,7 @@ class FullscreenNavActivity : AppCompatActivity() {
      */
     private val routesObserver = RoutesObserver { routeUpdateResult ->
         if (routeUpdateResult.navigationRoutes.isNotEmpty()) {
-            routeLineApi.setNavigationRoutes(
-                routeUpdateResult.navigationRoutes
-            ) { value ->
-                mapboxMap.getStyle()?.apply {
-                    routeLineView.renderRouteDrawData(this, value)
-                }
-            }
-            navigationCamera.requestNavigationCameraToFollowing()
-            // update the camera position to account for the new route
-            viewportDataSource.onRouteChanged(routeUpdateResult.navigationRoutes.first())
-            viewportDataSource.evaluate()
-        } else {
-            // remove the route line and route arrow from the map
-            val style = mapboxMap.getStyle()
-            if (style != null) {
-                routeLineApi.clearRouteLine { value ->
-                    routeLineView.renderClearRouteLineValue(
-                        style,
-                        value
-                    )
-                }
-                routeArrowView.render(style, routeArrowApi.clearArrows())
-            }
-
-            // remove the route reference from camera position evaluations
-            viewportDataSource.clearRouteData()
-            viewportDataSource.evaluate()
+            PluginUtilities.sendEvent(MapBoxEvents.REROUTE_ALONG);
         }
     }
 }

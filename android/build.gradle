@@ -2,7 +2,7 @@ group 'com.nick92.flutter_mapbox'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.7.10'
+    ext.kotlin_version = '1.9.0'
     ext.android_gradle_version = '7.4.2'
     repositories {
         google()
@@ -85,13 +85,10 @@ android {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation ("com.mapbox.navigation:android:2.18.0") {
-        exclude group: 'com.mapbox.plugin', module: 'maps-lifecycle'
-    }
-    implementation ('com.mapbox.mapboxsdk:mapbox-android-sdk:9.0.0') {
-        exclude module: 'mapbox-android-core'
-    }
+    implementation "com.mapbox.navigation:android:2.19.0-beta.2"
+    implementation "com.mapbox.navigation:ui-dropin:2.19.0-beta.2"
+    implementation "com.mapbox.navigation:ui-app:2.19.0-beta.2"
+
     implementation 'com.jakewharton.timber:timber:4.7.1'
     implementation 'com.google.code.gson:gson:2.8.9'
     implementation 'androidx.appcompat:appcompat:1.6.1'
