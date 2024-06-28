@@ -69,6 +69,8 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
     var mapStyleUrlNight: String? = null
     var navigationLanguage = "en"
     var navigationVoiceUnits = DirectionsCriteria.IMPERIAL
+    var bannerInstructionsEnabled = true
+    var voiceInstructionsEnabled = true
     var zoom = 14.0
     var bearing = 0.0
     var tilt = 0.0
@@ -222,6 +224,7 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
 
   override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
     currentActivity = binding.activity
+    lifecycle = FlutterLifecycleAdapter.getActivityLifecycle(binding)
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -242,7 +245,7 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
-    //To change body of created functions use File | Settings | File Templates.
+    lifecycle = null
   }
 
   interface LifecycleProvider {

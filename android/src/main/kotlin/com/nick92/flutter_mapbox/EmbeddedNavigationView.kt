@@ -120,6 +120,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         mapView.compass.visibility = false
         mapView.scalebar.enabled = false
 
+
         setOptions(arguments)
 
         // initialize the location puck
