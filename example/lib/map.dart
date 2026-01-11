@@ -6,12 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_mapbox/flutter_mapbox.dart';
 
 class SampleNavigationApp extends StatefulWidget {
+  const SampleNavigationApp({super.key});
+
   @override
   _SampleNavigationAppState createState() => _SampleNavigationAppState();
 }
 
 class _SampleNavigationAppState extends State<SampleNavigationApp> {
-  String _platformVersion = 'Unknown';
+  final String _platformVersion = 'Unknown';
   String? _instruction = "";
 
   final _home = WayPoint(
@@ -48,7 +50,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
       // setState to update our non-existent appearance.
       if (!mounted) return;
 
-      bool _serviceEnabled;
+      bool serviceEnabled;
 
       List<WayPoint> pois = [];
 
@@ -116,9 +118,6 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       ElevatedButton(
-                        child: Text(_routeBuilt && !_isNavigating
-                            ? "Clear Route"
-                            : "Build Route"),
                         onPressed: _isNavigating
                             ? null
                             : () {
@@ -146,6 +145,9 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                                       wayPoints: wayPoints, options: _options);
                                 }
                               },
+                        child: Text(_routeBuilt && !_isNavigating
+                            ? "Clear Route"
+                            : "Build Route"),
                       ),
                       ElevatedButton(
                           child:
@@ -169,15 +171,14 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                           }),
                       Row(children: [
                         ElevatedButton(
-                          child: Text("Start "),
                           onPressed: !_isNavigating
                               ? () {
                                   _controller!.startFullScreenNavigation();
                                 }
                               : null,
+                          child: Text("Start "),
                         ),
                         ElevatedButton(
-                          child: Text("Start 2"),
                           onPressed: !_isNavigating
                               ? () {
                                   // _controller!.finishNavigation();
@@ -189,6 +190,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
                                       wayPoints: wayPoints, options: _options!);
                                 }
                               : null,
+                          child: Text("Start 2"),
                         )
                       ]),
                     ],
@@ -284,12 +286,7 @@ class _SampleNavigationAppState extends State<SampleNavigationApp> {
       case MapBoxEvent.map_position_changed:
         var coords = await _controller!.centerCoordinates;
         var zoom = await _controller!.zoomLevel;
-        print("lat:" +
-            coords.first.toString() +
-            " lon:" +
-            coords.last.toString() +
-            "zoom:" +
-            zoom.toString());
+        print("lat:${coords.first} lon:${coords.last}zoom:$zoom");
         break;
       case MapBoxEvent.progress_change:
         var progressEvent = e.data as RouteProgressEvent;

@@ -124,16 +124,16 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         setOptions(arguments)
 
         // initialize the location puck
-        mapView.location.apply {
-            this.locationPuck = LocationPuck2D(
-                bearingImage = ContextCompat.getDrawable(
-                    context,
-                    R.drawable.mapbox_user_icon
-                ),
-            )
-            setLocationProvider(navigationLocationProvider)
-            enabled = true
-        }
+       // mapView.location.apply {
+        //    this.locationPuck = LocationPuck2D(
+         //       bearingImage = ContextCompat.getDrawable(
+          //          context,
+          //          R.drawable.location
+          //      ),
+          //  )
+         //   setLocationProvider(navigationLocationProvider)
+        //    enabled = true
+       // }
 
         // initialize Mapbox Navigation
         MapboxNavigationApp.setup(

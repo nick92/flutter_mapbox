@@ -1,8 +1,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.nick92.flutter_mapbox">
+  
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
   <application>
-    <activity android:name="com.nick92.flutter_mapbox.views.FullscreenNavActivity" />
+    <meta-data android:name="com.mapbox.token" android:value="YOUR_PUBLIC_TOKEN_HERE" />
+
+    <activity 
+        android:name="com.nick92.flutter_mapbox.views.FullscreenNavActivity"
+        android:exported="true"
+        android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout" />
+
+    <service
+        android:name="com.mapbox.navigation.core.trip.session.MapboxNavigationService"
+        android:foregroundServiceType="location"
+        android:exported="false" />
+
   </application>
 </manifest>

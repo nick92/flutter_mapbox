@@ -4,8 +4,8 @@ version: 0.9.6
 homepage: https://github.com/nick92/flutter_mapbox
 
 environment:
-  sdk: ">=2.17.1 <4.0.0"
-  flutter: ">=2.5.0"
+  sdk: ">=3.0.0 <4.0.0" # Ensures compatibility with Dart 3 (Null Safety required)
+  flutter: ">=3.0.0"
 
 dependencies:
   flutter:
