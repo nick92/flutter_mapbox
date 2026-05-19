@@ -14,10 +14,5 @@
         android:exported="true"
         android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout" />
 
-    <service
-        android:name="com.mapbox.navigation.core.trip.session.MapboxNavigationService"
-        android:foregroundServiceType="location"
-        android:exported="false" />
-
   </application>
 </manifest>
