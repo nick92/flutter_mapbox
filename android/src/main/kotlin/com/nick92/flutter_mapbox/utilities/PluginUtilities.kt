@@ -9,11 +9,6 @@ import com.nick92.flutter_mapbox.FlutterMapboxPlugin
 import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.google.gson.Gson
-//import com.mapbox.mapboxsdk.geometry.LatLng
-import io.flutter.plugin.common.MethodCall
-import java.io.ByteArrayInputStream
-import java.io.InputStream
-import java.util.*
 
 class PluginUtilities {
     companion object {
@@ -25,16 +20,6 @@ class PluginUtilities {
             }
             return context.getString(stringRes)
         }
-
-//        fun getRandomLatLng(bbox: DoubleArray): LatLng {
-//            val random = Random()
-//
-//            val randomLat: Double = bbox.get(1) + (bbox.get(3) - bbox.get(1)) * random.nextDouble()
-//            val randomLon: Double = bbox.get(0) + (bbox.get(2) - bbox.get(0)) * random.nextDouble()
-//
-//            val latLng = LatLng(randomLat, randomLon)
-//            return latLng
-//        }
 
         fun sendEvent(event: MapBoxRouteProgressEvent) {
             val dataString = Gson().toJson(event)
@@ -52,69 +37,8 @@ class PluginUtilities {
                     "}" else "{" +
                     "  \"eventType\": \"${event.value}\"," +
                     "  \"data\": \"$data\"" +
-                    "}";
+                    "}"
             FlutterMapboxPlugin.eventSink?.success(jsonString)
-        }
-
-        fun getListOfStringById(key: String, call: MethodCall): ArrayList<String> {
-            val logTypesList = arrayListOf<String>()
-            call.argument<String>(key)?.let {
-                it.split(",").forEach {
-                    logTypesList.add(it)
-                }
-                return logTypesList
-            }
-            return arrayListOf()
-        }
-
-        fun getStringValueById(key: String, call: MethodCall): String {
-            call.argument<String>(key)?.let {
-                return it
-            }
-            return ""
-        }
-
-        fun getIntValueById(key: String, call: MethodCall): Int? {
-            call.argument<Int>(key)?.let {
-                return it
-            }
-            return null
-        }
-
-        fun getDoubleValueById(key: String, call: MethodCall): Double? {
-            call.argument<Double>(key)?.let {
-                return it
-            }
-            return null
-        }
-
-        fun getBoolValueById(key: String, call: MethodCall): Boolean {
-            call.argument<Boolean>(key)?.let {
-                return it
-            }
-            return false
-        }
-
-        fun getInputStreamValueById(key: String, call: MethodCall): InputStream? {
-            call.argument<ByteArray>(key)?.let {
-                return ByteArrayInputStream(it)
-            }
-            return null
-        }
-
-
-        fun getLocaleFromCode(locale: String): Locale {
-            val locales: Array<Locale> = Locale.getAvailableLocales()
-
-            val filtered = locales.filter {
-                it.country.equals(locale, ignoreCase = true)
-            }
-
-            return if (filtered.isNotEmpty()) {
-                filtered.first()
-            } else {
-                Locale.ENGLISH
-            }
         }
 
         fun isNetworkAvailable(context: Context): Boolean {

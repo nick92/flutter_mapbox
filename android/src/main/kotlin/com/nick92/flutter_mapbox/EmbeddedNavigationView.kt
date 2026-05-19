@@ -14,7 +14,6 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
@@ -276,6 +275,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
             "startFullScreenNavigation" -> {
                 beginFullScreenNavigation()
+                result.success(true)
             }
             "finishNavigation" -> {
                 finishNavigation(methodCall, result)
@@ -296,11 +296,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 result.success(zoomLevel)
             }
             "reCenter" -> {
-                navigationCamera.requestNavigationCameraToOverview(
-                    stateTransitionOptions = NavigationCameraTransitionOptions.Builder()
-                        .maxDuration(0)
-                        .build()
-                )
+                navigationCamera.requestNavigationCameraToFollowing()
             }
             "setPOIs" -> {
                 addPOIs(methodCall, result)
@@ -521,16 +517,10 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         return false
     }
 
-    private fun moveCameraToOriginOfRoute() {
-        FlutterMapboxPlugin.currentRoute?.let {
-            val originCoordinate = it.directionsRoute.routeOptions()?.coordinatesList()?.getOrNull(0)
-            // camera update can be implemented here if needed
-        }
-    }
-
     private fun clearRoute(methodCall: MethodCall, result: MethodChannel.Result) {
         mapboxNavigation.setNavigationRoutes(listOf())
         mapboxReplayer.stop()
+        result.success(true)
     }
 
     private fun clearRouteAndStopNavigation() {
@@ -606,7 +596,6 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
         if (!isOffRouted) {
             isNavigationInProgress = false
-            moveCameraToOriginOfRoute()
         }
 
         if (simulateRoute)
@@ -620,8 +609,14 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         if (arguments != null) {
             val latitude = arguments["latitude"] as Double
             val longitude = arguments["longitude"] as Double
-            // camera update can be implemented here
+            mapboxMap.setCamera(
+                CameraOptions.Builder()
+                    .center(Point.fromLngLat(longitude, latitude))
+                    .zoom(zoom)
+                    .build()
+            )
         }
+        result.success(true)
     }
 
     private fun setOptions(arguments: Map<*, *>) {

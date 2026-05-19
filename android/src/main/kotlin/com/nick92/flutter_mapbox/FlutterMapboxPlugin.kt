@@ -11,7 +11,6 @@ import androidx.lifecycle.Lifecycle
 import com.nick92.flutter_mapbox.views.FlutterMapboxFactory
 
 import com.mapbox.api.directions.v5.DirectionsCriteria
-import com.mapbox.api.directions.v5.models.DirectionsRoute
 import com.mapbox.geojson.Point
 import com.mapbox.navigation.base.route.NavigationRoute
 import com.nick92.flutter_mapbox.views.FullscreenNavigationLauncher
@@ -56,12 +55,10 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
 
     var PERMISSION_REQUEST_CODE: Int = 367
 
-    lateinit var routes : List<DirectionsRoute>
     var currentRoute: NavigationRoute? = null
     val wayPoints: MutableList<Point> = mutableListOf()
 
     var showAlternateRoutes: Boolean = true
-    val allowsClickToSetDestination: Boolean = false
     var allowsUTurnsAtWayPoints: Boolean = false
     var navigationMode =  DirectionsCriteria.PROFILE_DRIVING_TRAFFIC
     var simulateRoute = false
@@ -99,6 +96,7 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
       }
       "finishNavigation" -> {
         currentActivity?.let { FullscreenNavigationLauncher.stopNavigation(it) }
+        result.success(true)
       }
       "enableOfflineRouting" -> {
         downloadRegionForOfflineRouting(call, result)
@@ -217,7 +215,7 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
   }
 
   override fun onDetachedFromActivity() {
-    currentActivity!!.finish()
+    currentActivity?.finish()
     currentActivity = null
     lifecycle = null
   }
@@ -246,10 +244,6 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
 
   override fun onDetachedFromActivityForConfigChanges() {
     lifecycle = null
-  }
-
-  interface LifecycleProvider {
-    fun getLifecycle(): Lifecycle?
   }
 
 }

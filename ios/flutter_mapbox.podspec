@@ -4,18 +4,18 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_mapbox'
-  s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  s.version          = '0.9.6'
+  s.summary          = 'Add turn-by-turn navigation to your Flutter app using the Mapbox Navigation SDK.'
   s.description      = <<-DESC
-A new Flutter plugin project.
+Add Turn By Turn Navigation to Your Flutter Application Using MapBox. Never leave your app when you need to navigate your users to a location.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/nick92/flutter_mapbox'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'Nick Wilkins' => 'nickawilkins@hotmail.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.platform = :ios, '12.0'
+  s.platform = :ios, '14.0'
   s.dependency 'MapboxCoreNavigation', '~> 2.12'
   s.dependency 'MapboxNavigation', '~> 2.12'
 

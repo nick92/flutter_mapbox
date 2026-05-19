@@ -101,9 +101,7 @@ class MapBoxNavigation {
     legsCount = wayPoints.length - 1;
 
     _routeEventSubscription = _streamRouteEvent!.listen(_onProgressData);
-    await _methodChannel
-        .invokeMethod('startNavigation', args)
-        .then<String>((dynamic result) => result);
+    await _methodChannel.invokeMethod('startNavigation', args);
   }
 
   ///Ends Navigation and Closes the Navigation View
