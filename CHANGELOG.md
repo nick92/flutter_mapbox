@@ -1,3 +1,24 @@
+## 1.0.0
+
+**Breaking — moves both platforms to Mapbox Navigation SDK v3.**
+
+* Android: Mapbox `navigationcore` 3.23.0 (from Navigation SDK 2.19); `compileSdk 36`,
+  Android Gradle Plugin 8.x, Kotlin 2.1, Java 17. Adds `FOREGROUND_SERVICE` /
+  `FOREGROUND_SERVICE_LOCATION` to the plugin manifest.
+* iOS: `mapbox-navigation-ios` 3.24+ via Swift Package Manager; minimum iOS 14.
+  CocoaPods-only builds are no longer supported.
+* Requires Dart 3 / Flutter 3.
+* New `MapBoxNavigationViewController.selectRoute(index)` to promote an
+  alternative route.
+* `route_built` now carries each route's `coordinates` (`[[lng, lat], ...]`,
+  primary first) alongside `distance` and `duration`, on both platforms —
+  including after `selectRoute` or tapping an alternative on the map.
+* Android full-screen navigation: shows the 2D location puck (with bearing), and
+  keeps the maneuver banner, sound button and trip-progress card clear of the
+  status / navigation bars on edge-to-edge (Android 15+) devices; the camera is
+  padded to match.
+* Example app: Mapbox tokens replaced with placeholders — supply your own.
+
 ## 0.9.6
 
 * fix for ios crashes

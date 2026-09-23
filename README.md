@@ -6,15 +6,16 @@
 
 Add turn-by-turn navigation to your Flutter app using the Mapbox Navigation SDK — without ever leaving your app.
 
-Powered by **Mapbox Navigation SDK v3.23.0** on Android and the equivalent iOS release.
+Powered by **Mapbox Navigation SDK v3** on both platforms — `navigationcore` 3.23.0 on Android, `mapbox-navigation-ios` 3.24+ (Swift Package Manager) on iOS.
 
 ---
 
 ## Features
 
 - Embedded map view with full turn-by-turn navigation
-- Full-screen navigation mode
-- Alternative route selection
+- Full-screen navigation mode (edge-to-edge aware, with a location puck)
+- Alternative route selection (`selectRoute`)
+- Route geometry in the `route_built` event, for checking a route against your own data
 - Voice and banner instructions
 - Real-time route progress events
 - Vehicle dimension restrictions (height, width, weight)
@@ -41,8 +42,19 @@ Powered by **Mapbox Navigation SDK v3.23.0** on Android and the equivalent iOS r
 
 ```yaml
 dependencies:
-  flutter_mapbox: ^0.9.6
+  flutter_mapbox: ^1.0.0
 ```
+
+#### Requirements
+
+| | Minimum |
+|---|---|
+| Flutter / Dart | Flutter 3, Dart 3 |
+| Android | `compileSdk 36`, Android Gradle Plugin 8.x, Java 17 |
+| iOS | iOS 14, **Swift Package Manager** (see below) |
+
+> **Upgrading from 0.9.x:** 1.0.0 moves both platforms to Mapbox Navigation SDK v3.
+> See the [changelog](CHANGELOG.md) for what that changes in your app.
 
 ### 2. Mapbox Access Token
 
@@ -50,11 +62,16 @@ You need a [Mapbox account](https://account.mapbox.com/) and a **secret download
 
 #### Android
 
-Add your secret token to `~/.gradle/gradle.properties`:
+Add your secret token to `~/.gradle/gradle.properties` (or set it as a
+`MAPBOX_DOWNLOADS_TOKEN` environment variable):
 
 ```properties
 MAPBOX_DOWNLOADS_TOKEN=sk.your_secret_token_here
 ```
+
+> ⚠️ Keep secret (`sk.`) tokens out of your project's own `gradle.properties`
+> and anything else under version control — they grant access to your Mapbox
+> account. The user-level file above is outside every repository.
 
 Add your public access token to `android/app/src/main/res/values/strings.xml`:
 
@@ -100,9 +117,27 @@ Add location permissions to `AndroidManifest.xml`:
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 ```
 
+The plugin's manifest also merges in `FOREGROUND_SERVICE` and
+`FOREGROUND_SERVICE_LOCATION`, which the v3 SDK needs for its trip session.
+
+If your `MainActivity` hosts the embedded view, extend
+`FlutterFragmentActivity` rather than `FlutterActivity`.
+
 #### iOS
 
-Set the minimum deployment target to **iOS 14** in your `Podfile`:
+The iOS side is built against Mapbox Navigation SDK v3, which is only
+distributed through Swift Package Manager, so your app must build plugins with
+SwiftPM:
+
+```bash
+flutter config --enable-swift-package-manager
+```
+
+CocoaPods-only builds are not supported from 1.0.0 (the Swift sources no longer
+compile against the v2 pods).
+
+Set the minimum deployment target to **iOS 14** (Xcode → Runner target →
+General → Minimum Deployments), and in your `Podfile` if you still have one:
 
 ```ruby
 platform :ios, '14.0'
@@ -220,6 +255,33 @@ Future<void> _onRouteEvent(RouteEvent e) async {
 }
 ```
 
+### Route data from `route_built`
+
+`route_built` carries one entry per route, primary first — the route length,
+duration and its line as `[lng, lat]` pairs. Use it to show alternatives or to
+check the route against your own data (e.g. low bridges).
+
+```dart
+case MapBoxEvent.route_built:
+  // e.data is a JSON-encoded string of the JSON payload — decode twice.
+  final routes = jsonDecode(jsonDecode(e.data as String) as String) as List;
+  for (final r in routes) {
+    final distance = r['distance'] as num;        // metres
+    final duration = r['duration'] as num;        // seconds
+    final coordinates = r['coordinates'] as List; // [[lng, lat], ...]
+  }
+  break;
+```
+
+### Choosing an alternative route
+
+```dart
+// Index into the route_built list; 0 is already the primary route.
+await _controller.selectRoute(index: 1);
+```
+
+`selectRoute` fires `route_built` again with the chosen route moved to index 0.
+
 ### Adding POI annotations
 
 ```dart
@@ -292,6 +354,7 @@ MapBoxOptions(
 | `startFullScreenNavigation()` | Start full-screen navigation |
 | `finishNavigation()` | End the navigation session |
 | `clearRoute()` | Clear the current route |
+| `selectRoute(index)` | Make an alternative route the primary one |
 | `reCenterCamera()` | Re-center the map on the user |
 | `updateCameraPosition(lat, lng)` | Move the camera to a position |
 | `setPOI(groupName, image, iconSize, wayPoints)` | Add POI annotations |
