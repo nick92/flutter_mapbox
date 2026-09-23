@@ -4,17 +4,28 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.*
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import com.mapbox.api.directions.v5.models.Bearing
 import com.mapbox.api.directions.v5.models.RouteOptions
 import com.mapbox.bindgen.Expected
 import com.mapbox.common.Cancelable
 import com.mapbox.geojson.Point
+import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.Style
+import com.mapbox.maps.plugin.PuckBearing
+import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
+import com.mapbox.maps.plugin.locationcomponent.location
 import com.mapbox.maps.plugin.animation.camera
 import com.mapbox.navigation.base.extensions.applyDefaultNavigationOptions
 import com.mapbox.navigation.base.extensions.applyLanguageAndVoiceUnitOptions
@@ -114,7 +125,57 @@ class FullscreenNavActivity : AppCompatActivity() {
 
         setupNavigationComponents()
         setupUI()
+        applyWindowInsets()
     }
+
+    // Android 15+ forces edge-to-edge, so keep the overlays clear of the status
+    // and navigation bars, and pad the camera so the puck isn't hidden under them.
+    private fun applyWindowInsets() {
+        val density = Resources.getSystem().displayMetrics.density
+        val maneuverMargin = (10 * density).toInt()
+        val tripPaddingVertical = (15 * density).toInt()
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
+            val bars = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+
+            binding.maneuverView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = bars.top + maneuverMargin
+                leftMargin = bars.left + maneuverMargin
+                rightMargin = bars.right + maneuverMargin
+            }
+            binding.soundButton.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                rightMargin = bars.right + (16 * density).toInt()
+            }
+            binding.tripProgressCard.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                leftMargin = bars.left
+                rightMargin = bars.right
+            }
+            // Pad inside the card so its background still reaches the screen edge.
+            binding.tripProgressView.updatePadding(bottom = tripPaddingVertical + bars.bottom)
+            binding.stop.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = bars.bottom / 2
+            }
+
+            val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            val following = if (landscape) EdgeInsets(30.0, 380.0, 110.0, 40.0) else EdgeInsets(180.0, 40.0, 150.0, 40.0)
+            val overview = if (landscape) EdgeInsets(140.0, 380.0, 130.0, 20.0) else EdgeInsets(160.0, 40.0, 160.0, 40.0)
+            viewportDataSource.followingPadding = following.scaled(density, bars.top, bars.bottom)
+            viewportDataSource.overviewPadding = overview.scaled(density, bars.top, bars.bottom)
+            viewportDataSource.evaluate()
+
+            windowInsets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
+    }
+
+    private fun EdgeInsets.scaled(density: Float, insetTop: Int, insetBottom: Int) = EdgeInsets(
+        top * density + insetTop,
+        left * density,
+        bottom * density + insetBottom,
+        right * density,
+    )
 
     private fun setupNavigationComponents() {
         MapboxNavigationApp.setup(NavigationOptions.Builder(this).build())
@@ -157,7 +218,15 @@ class FullscreenNavActivity : AppCompatActivity() {
         voiceInstructionsPlayer = MapboxVoiceInstructionsPlayer(this, language)
 
         val styleUrl = FlutterMapboxPlugin.mapStyleUrlDay ?: Style.MAPBOX_STREETS
-        mapboxMap.loadStyle(styleUrl)
+        mapboxMap.loadStyle(styleUrl) {
+            binding.mapView.location.apply {
+                setLocationProvider(navigationLocationProvider)
+                locationPuck = createDefault2DPuck(withBearing = true)
+                puckBearing = PuckBearing.COURSE
+                puckBearingEnabled = true
+                enabled = true
+            }
+        }
     }
 
     private fun setupUI() {

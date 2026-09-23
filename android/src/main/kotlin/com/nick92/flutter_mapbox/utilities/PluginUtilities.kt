@@ -31,13 +31,13 @@ class PluginUtilities {
         }
 
         fun sendEvent(event: MapBoxEvents, data: String = "") {
-            val jsonString = if (MapBoxEvents.MILESTONE_EVENT == event || event == MapBoxEvents.USER_OFF_ROUTE) "{" +
-                    "  \"eventType\": \"${event.value}\"," +
-                    "  \"data\": $data" +
-                    "}" else "{" +
-                    "  \"eventType\": \"${event.value}\"," +
-                    "  \"data\": \"$data\"" +
-                    "}"
+            val jsonString = if (MapBoxEvents.MILESTONE_EVENT == event || event == MapBoxEvents.USER_OFF_ROUTE) {
+                "{  \"eventType\": \"${event.value}\",  \"data\": $data  }"
+            } else {
+                // Gson().toJson(String) wraps data in quotes and escapes inner quotes,
+                // so embedded JSON (e.g. route arrays) produces valid outer JSON.
+                "{  \"eventType\": \"${event.value}\",  \"data\": ${Gson().toJson(data)}  }"
+            }
             FlutterMapboxPlugin.eventSink?.success(jsonString)
         }
 

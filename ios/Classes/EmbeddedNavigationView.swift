@@ -1,12 +1,14 @@
+import Combine
+import CoreLocation
+import MapboxDirections
 import Flutter
 import UIKit
 import MapboxMaps
-import MapboxDirections
-import MapboxCoreNavigation
-import MapboxNavigation
+@_spi(ExperimentalMapboxAPI) import MapboxNavigationCore
+import MapboxNavigationUIKit
 
-public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformView
-{
+@MainActor
+public class FlutterMapboxNavigationView: NavigationFactory, FlutterPlatformView {
     let frame: CGRect
     let viewId: Int64
 
@@ -19,9 +21,17 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
 
     var selectedRouteIndex = 0
     var routeOptions: NavigationRouteOptions?
-    var navigationService: NavigationService!
-    
-    var _mapInitialized = false;
+    var navigationRoutes: NavigationRoutes? {
+        didSet {
+            guard navigationRoutes != nil else {
+                navigationMapView?.removeRoutes()
+                return
+            }
+            showCurrentRoute()
+        }
+    }
+
+    var _mapInitialized = false
     var locationManager = CLLocationManager()
     var _selectedAnnotation: String?
     var pointAnnotationManager: PointAnnotationManager?
@@ -29,506 +39,455 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
     var mapMoved = false
     var centerCoords: [Double] = []
     var zoomLevel: Double = 0.0
-    
-    init(messenger: FlutterBinaryMessenger, frame: CGRect, viewId: Int64, args: Any?)
-    {
+
+    private var locationBridge = PassthroughSubject<CLLocation, Never>()
+    private var routeProgressBridge = PassthroughSubject<RouteProgress?, Never>()
+    private var headingBridge = PassthroughSubject<CLHeading, Never>()
+    private var providerSubscriptions = Set<AnyCancellable>()
+
+    init(messenger: FlutterBinaryMessenger, frame: CGRect, viewId: Int64, args: Any?) {
         self.frame = frame
         self.viewId = viewId
         self.arguments = args as! NSDictionary?
-
         self.messenger = messenger
         self.channel = FlutterMethodChannel(name: "flutter_mapbox/\(viewId)", binaryMessenger: messenger)
         self.eventChannel = FlutterEventChannel(name: "flutter_mapbox/\(viewId)/events", binaryMessenger: messenger)
 
         super.init()
-
         self.eventChannel.setStreamHandler(self)
 
-        self.channel.setMethodCallHandler { [weak self](call, result) in
-            
-            guard let strongSelf = self else { return }
-            
+        self.channel.setMethodCallHandler { [weak self] (call, result) in
+            guard let self else { return }
             let arguments = call.arguments as? NSDictionary
-            
-            if(call.method == "getPlatformVersion")
-            {
+            switch call.method {
+            case "getPlatformVersion":
                 result("iOS " + UIDevice.current.systemVersion)
+            case "buildRoute":
+                self.buildRoute(arguments: arguments, flutterResult: result)
+            case "clearRoute":
+                self.clearRoute(arguments: arguments, result: result)
+            case "updateCamera":
+                self.updateCamera(arguments: arguments, result: result)
+            case "getDistanceRemaining":
+                result(self._distanceRemaining)
+            case "getDurationRemaining":
+                result(self._durationRemaining)
+            case "getCenterCoordinates":
+                result(self.centerCoords)
+            case "getZoomLevel":
+                result(self.zoomLevel)
+            case "getRouteBuildResponse":
+                result(self._routeBuildResponse)
+            case "getSelectedAnnotation":
+                result(self._selectedAnnotation)
+            case "finishNavigation":
+                self.endNavigation(result: result)
+            case "startNavigation":
+                self.startEmbeddedNavigation(arguments: arguments, result: result)
+            case "startFullScreenNavigation":
+                self.startNonEmbeddedNavigation(arguments: arguments, result: result)
+            case "reCenter":
+                self.navigationMapView.navigationCamera.update(cameraState: .following)
+                result(nil)
+            case "setPOIs":
+                self.addPOIs(arguments: arguments, result: result)
+            case "removePOIs":
+                self.removePOIs(arguments: arguments, result: result)
+            case "selectRoute":
+                self.selectRoute(arguments: arguments, result: result)
+            default:
+                result(FlutterMethodNotImplemented)
             }
-            else if(call.method == "buildRoute")
-            {
-                strongSelf.buildRoute(arguments: arguments, flutterResult: result)
-            }
-            else if(call.method == "clearRoute")
-            {
-                strongSelf.clearRoute(arguments: arguments, result: result)
-            }
-            else if(call.method == "updateCamera")
-            {
-                strongSelf.updateCarmera(arguments: arguments, result: result)
-            }
-            else if(call.method == "getDistanceRemaining")
-            {
-                result(strongSelf._distanceRemaining)
-            }
-            else if(call.method == "getDurationRemaining")
-            {
-                result(strongSelf._durationRemaining)
-            }
-            else if(call.method == "getCenterCoordinates")
-            {
-                result(strongSelf.centerCoords)
-            }
-            else if(call.method == "getZoomLevel")
-            {
-                result(strongSelf.zoomLevel)
-            }
-            else if(call.method == "getRouteBuildResponse")
-            {
-                result(strongSelf._routeBuildResponse)
-            }
-            else if(call.method == "getSelectedAnnotation")
-            {
-                result(strongSelf._selectedAnnotation);
-            }
-            else if(call.method == "finishNavigation")
-            {
-                strongSelf.endNavigation(result: result)
-            }
-            else if(call.method == "startNavigation")
-            {
-                strongSelf.startEmbeddedNavigation(arguments: arguments, result: result)
-            }
-            else if(call.method == "startFullScreenNavigation")
-            {
-                strongSelf.startNonEmbeddedNavigation(arguments: arguments, result: result)
-            }
-            else if(call.method == "reCenter")
-            {
-                //used to recenter map from user action during navigation
-                strongSelf.navigationMapView.navigationCamera.follow()
-            }
-            else if(call.method == "setPOIs")
-            {
-                strongSelf.addPOIs(arguments: arguments, result: result)
-            }
-            else if(call.method == "removePOIs")
-            {
-                strongSelf.removePOIs(arguments: arguments, result: result)
-            }
-            else
-            {
-                result("method is not implemented");
-            }
+        }
+    }
 
-        }
-    }
-    
-    var currentRouteIndex = 0 {
-        didSet {
-            showCurrentRoute()
-        }
-    }
-    var currentRoute: Route? {
-        return routes?[currentRouteIndex]
-    }
-    
-    var routes: [Route]? {
-        return routeResponse?.routes
-    }
-    
-    var routeResponse: RouteResponse? {
-        didSet {
-            guard currentRoute != nil else {
-                navigationMapView.removeRoutes()
-            return
-        }
-            currentRouteIndex = 0
-        }
-    }
-    
     func showCurrentRoute() {
-        guard let currentRoute = currentRoute else { return }
-         
-        var routes = [currentRoute]
-        routes.append(contentsOf: self.routes!.filter {
-            $0 != currentRoute
-        })
-        navigationMapView.show(routes)
-        navigationMapView.showWaypoints(on: currentRoute)
-        
-        self._distanceRemaining = currentRoute.distance
-        self._durationRemaining = currentRoute.expectedTravelTime
-        
-        self.sendEvent(eventType: MapBoxEventType.route_built)
+        guard let navigationRoutes else { return }
+        navigationMapView.showRoutes(navigationRoutes)
+        _distanceRemaining = navigationRoutes.mainRoute.route.distance
+        _durationRemaining = navigationRoutes.mainRoute.route.expectedTravelTime
+
+        // One entry per route, main first. `coordinates` is the route line as
+        // [[lng, lat], ...] so the app can check it against its restrictions.
+        func routeEntry(_ route: Route) -> [String: Any] {
+            let coords = (route.shape?.coordinates ?? []).map { [$0.longitude, $0.latitude] }
+            return [
+                "duration": route.expectedTravelTime,
+                "distance": route.distance,
+                "coordinates": coords
+            ]
+        }
+        var routeData: [[String: Any]] = [routeEntry(navigationRoutes.mainRoute.route)]
+        for alt in navigationRoutes.alternativeRoutes {
+            routeData.append(routeEntry(alt.route))
+        }
+        if let jsonData = try? JSONSerialization.data(withJSONObject: routeData),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            sendEvent(eventType: MapBoxEventType.route_built, data: jsonString)
+        } else {
+            sendEvent(eventType: MapBoxEventType.route_built)
+        }
     }
 
-    public func view() -> UIView
-    {
-        if(_mapInitialized)
-        {
-            return navigationMapView
-        }
-
+    public func view() -> UIView {
+        if _mapInitialized { return navigationMapView }
         setupMapView()
-
         return navigationMapView
     }
 
-    private func setupMapView()
-    {
-        navigationMapView = NavigationMapView(frame: frame)
+    // FlutterPlatformView.dispose() is @optional in the Objective-C protocol,
+    // so leaving it unimplemented compiles fine but means the engine never
+    // gets a hook to tear this instance down — nothing ever released
+    // providerSubscriptions or this view's own state after the Flutter widget
+    // was removed.
+    //
+    // mapboxNavigationProvider itself is a shared, process-lifetime singleton
+    // (see NavigationFactory) and is deliberately NOT nil'd here — it belongs
+    // to the whole plugin, not this one view, and the next embedded view (or
+    // full-screen nav session) reuses it rather than racing to recreate it.
+    public func dispose() {
+        if let navVC = _navigationViewController {
+            navVC.delegate = nil
+            if isEmbeddedNavigation {
+                navVC.view.removeFromSuperview()
+            } else {
+                navVC.dismiss(animated: false)
+            }
+            _navigationViewController = nil
+        }
+
+        eventChannel.setStreamHandler(nil)
+        channel.setMethodCallHandler(nil)
+        _eventSink = nil
+
+        _routeCalculationTask?.cancel()
+        _routeCalculationTask = nil
+
+        providerSubscriptions.removeAll()
+
+        locationManager.stopUpdatingLocation()
+        locationManager.stopUpdatingHeading()
+        locationManager.delegate = nil
+
+        pointAnnotationManager?.delegate = nil
+        pointAnnotationManager = nil
+        navigationRoutes = nil
+        navigationMapView?.delegate = nil
+        navigationMapView = nil
+        _mapInitialized = false
+    }
+
+    private func subscribeToNavigationProvider() {
+        providerSubscriptions.removeAll()
+        let nav = mapboxNavigation.navigation()
+        nav.locationMatching
+            .map(\.location)
+            .sink { [weak self] in self?.locationBridge.send($0) }
+            .store(in: &providerSubscriptions)
+        nav.routeProgress
+            .map { $0?.routeProgress }
+            .sink { [weak self] in self?.routeProgressBridge.send($0) }
+            .store(in: &providerSubscriptions)
+        nav.heading
+            .sink { [weak self] in self?.headingBridge.send($0) }
+            .store(in: &providerSubscriptions)
+    }
+
+    private func setupMapView() {
+        locationManager.delegate = self
+        subscribeToNavigationProvider()
+
+        navigationMapView = NavigationMapView(
+            location: locationBridge.eraseToAnyPublisher(),
+            routeProgress: routeProgressBridge.eraseToAnyPublisher(),
+            heading: headingBridge.eraseToAnyPublisher()
+        )
+        navigationMapView.frame = frame
+        navigationMapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         navigationMapView.delegate = self
-        navigationMapView.userLocationStyle = .puck2D()
-        
+        navigationMapView.puckType = .puck2D(Puck2DConfiguration.makeDefault(showBearing: false))
+        navigationMapView.puckBearing = .heading
+
         let mapView = navigationMapView.mapView
-        pointAnnotationManager = mapView?.annotations.makePointAnnotationManager()
+        pointAnnotationManager = mapView.annotations.makePointAnnotationManager()
         pointAnnotationManager?.delegate = self
-        
-        if(self.arguments != nil)
-        {
-            _language = arguments?["language"] as? String ?? _language
-            _voiceUnits = arguments?["units"] as? String ?? _voiceUnits
-            _simulateRoute = arguments?["simulateRoute"] as? Bool ?? _simulateRoute
-            _isOptimized = arguments?["isOptimized"] as? Bool ?? _isOptimized
-            _alternatives = arguments?["alternatives"] as? Bool ?? _alternatives
-            _enableRefresh = arguments?["enableRefresh"] as? Bool ?? _enableRefresh
-            _allowsUTurnAtWayPoints = arguments?["allowsUTurnAtWayPoints"] as? Bool
-            _navigationMode = arguments?["mode"] as? String ?? "drivingWithTraffic"
-            _mapStyleUrlDay = arguments?["mapStyleUrlDay"] as? String
-            _zoom = arguments?["zoom"] as? Double ?? _zoom
-            _bearing = arguments?["bearing"] as? Double ?? _bearing
-            _pitch = arguments?["tilt"] as? Double ?? _pitch
-            _animateBuildRoute = arguments?["animateBuildRoute"] as? Bool ?? _animateBuildRoute
-            _longPressDestinationEnabled = arguments?["longPressDestinationEnabled"] as? Bool ?? _longPressDestinationEnabled
-            _avoid = arguments?["avoid"] as? [String]
 
-            if(_mapStyleUrlDay != nil)
-            {
-                navigationMapView.mapView.mapboxMap.style.uri = StyleURI.init(url: URL(string: _mapStyleUrlDay!)!)
-            }
-            
-            let maxHeight = arguments?["maxHeight"] as? String
-            let maxWeight = arguments?["maxWeight"] as? String
-            let maxWidth = arguments?["maxWidth"] as? String
-            
-            if(maxHeight != nil)
-            {
-                _maxHeight = Double(maxHeight!)!
-            }
-            
-            if(maxWidth != nil)
-            {
-                _maxWidth = Double(maxWidth!)!
-            }
-            
-            if(maxWeight != nil)
-            {
-                _maxWeight = Double(maxWeight!)!
+        if let arguments {
+            _language = arguments["language"] as? String ?? _language
+            _voiceUnits = arguments["units"] as? String ?? _voiceUnits
+            _simulateRoute = arguments["simulateRoute"] as? Bool ?? _simulateRoute
+            _isOptimized = arguments["isOptimized"] as? Bool ?? _isOptimized
+            _alternatives = arguments["alternatives"] as? Bool ?? _alternatives
+            _enableRefresh = arguments["enableRefresh"] as? Bool ?? _enableRefresh
+            _allowsUTurnAtWayPoints = arguments["allowsUTurnAtWayPoints"] as? Bool
+            _navigationMode = arguments["mode"] as? String ?? "drivingWithTraffic"
+            _mapStyleUrlDay = arguments["mapStyleUrlDay"] as? String
+            _zoom = arguments["zoom"] as? Double ?? _zoom
+            _bearing = arguments["bearing"] as? Double ?? _bearing
+            _pitch = arguments["tilt"] as? Double ?? _pitch
+            _animateBuildRoute = arguments["animateBuildRoute"] as? Bool ?? _animateBuildRoute
+            _longPressDestinationEnabled = arguments["longPressDestinationEnabled"] as? Bool ?? _longPressDestinationEnabled
+            _avoid = arguments["avoid"] as? [String]
+
+            if let urlString = _mapStyleUrlDay, let url = URL(string: urlString), let styleURI = StyleURI(url: url) {
+                navigationMapView.mapView.mapboxMap.mapStyle = MapStyle(uri: styleURI)
             }
 
-            var currentLocation: CLLocation!
+            if let maxHeight = arguments["maxHeight"] as? String { _maxHeight = Double(maxHeight) ?? _maxHeight }
+            if let maxWidth = arguments["maxWidth"] as? String { _maxWidth = Double(maxWidth) ?? _maxWidth }
+            if let maxWeight = arguments["maxWeight"] as? String { _maxWeight = Double(maxWeight) ?? _maxWeight }
 
             locationManager.requestWhenInUseAuthorization()
-
-            if(CLLocationManager.authorizationStatus() == .authorizedWhenInUse ||
-                CLLocationManager.authorizationStatus() == .authorizedAlways) {
+            locationManager.desiredAccuracy = kCLLocationAccuracyBest
+            locationManager.startUpdatingLocation()
+            locationManager.startUpdatingHeading()
+            var currentLocation: CLLocation?
+            if locationManager.authorizationStatus == .authorizedWhenInUse ||
+               locationManager.authorizationStatus == .authorizedAlways {
                 currentLocation = locationManager.location
             }
-            
-            
-            let initialLatitude = arguments?["initialLatitude"] as? Double ?? currentLocation?.coordinate.latitude
-            let initialLongitude = arguments?["initialLongitude"] as? Double ?? currentLocation?.coordinate.longitude
-            if(initialLatitude != nil && initialLongitude != nil)
-            {
-                moveCameraToCoordinates(latitude: initialLatitude!, longitude: initialLongitude!)
+
+            let initialLatitude = arguments["initialLatitude"] as? Double ?? currentLocation?.coordinate.latitude
+            let initialLongitude = arguments["initialLongitude"] as? Double ?? currentLocation?.coordinate.longitude
+            if let lat = initialLatitude, let lon = initialLongitude {
+                moveCameraToCoordinates(latitude: lat, longitude: lon)
             }
         }
 
-        if _longPressDestinationEnabled
-        {
+        if _longPressDestinationEnabled {
             let gesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
             gesture.delegate = self
-            navigationMapView?.addGestureRecognizer(gesture)
+            navigationMapView.addGestureRecognizer(gesture)
         }
 
-        mapView?.mapboxMap.onEvery(event: .mapIdle, handler: { [weak self] _ in
+        mapView.mapboxMap.onEvery(event: .mapIdle) { [weak self] _ in
             self?.addOnMapIdleListener()
-        })
-
-        mapView?.mapboxMap.onEvery(event: .cameraChanged, handler: { [weak self] _ in
+        }
+        mapView.mapboxMap.onEvery(event: .cameraChanged) { [weak self] _ in
             self?.onCameraChangeListener()
-        })
-
+        }
     }
 
     func addOnMapIdleListener() {
         let mapView = navigationMapView.mapView
-        let coords = mapView?.mapboxMap.cameraState.center
-        centerCoords = [Double(coords?.longitude ?? 0), Double(coords?.latitude ?? 0)]
-        zoomLevel = Double(mapView?.cameraState.zoom ?? 0)
+        let coords = mapView.mapboxMap.cameraState.center
+        centerCoords = [Double(coords.longitude), Double(coords.latitude)]
+        zoomLevel = Double(mapView.cameraState.zoom)
         sendEvent(eventType: MapBoxEventType.map_position_changed)
     }
 
     func onCameraChangeListener() {
         let mapView = navigationMapView.mapView
-        if((mapView?.cameraState.zoom)! < 8){
-            self.pointAnnotationManager?.annotations = []
-        } else if ((mapView?.cameraState.zoom)! > 8){
-            var pointAnnot = [PointAnnotation]()
-            for point in self.pois
-            {
-                pointAnnot.append(contentsOf: point.annotation)
-            }
-            self.pointAnnotationManager?.annotations = pointAnnot
+        let zoom = mapView.cameraState.zoom
+        if zoom < 8 {
+            pointAnnotationManager?.annotations = []
+        } else {
+            pointAnnotationManager?.annotations = pois.flatMap { $0.annotation }
         }
     }
-    
-    func addPOIs(arguments: NSDictionary?, result: @escaping FlutterResult){
-        
-        if(self.arguments != nil)
-        {
-            let oPOIs = arguments?["poi"] as? NSDictionary ?? [:]
-            let image = arguments?["icon"] as? String ?? ""
-            let groupName = arguments?["group"] as? String ?? ""
-            let iconSize = arguments?["iconSize"] as? Double ?? 0.2
-            let imageData = Data(base64Encoded: image)
-            var pointAnnot = pointAnnotationManager?.annotations ?? []
-            
-            for item in oPOIs as NSDictionary
-            {
-                let point = item.value as! NSDictionary
-                guard let oID = point["Id"] as? String else {return}
-                guard let oName = point["Name"] as? String else {return}
-                guard let oLatitude = point["Latitude"] as? Double else {return}
-                guard let oLongitude = point["Longitude"] as? Double else {return}
-                
-                let centerCoordinate = CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude)
-                var customPointAnnotation = PointAnnotation(id: oID, coordinate: centerCoordinate)
-                customPointAnnotation.image = .init(image: UIImage(data: imageData!)!, name: groupName)
-                customPointAnnotation.iconSize = iconSize
-                customPointAnnotation.textField = oName
-                customPointAnnotation.textSize = 12
-                customPointAnnotation.textOffset = [0, 3]
-                
-                if let style = _mapStyleUrlDay {
-                    if style.contains("night") {
-                        customPointAnnotation.textColor = StyleColor.init(.white)
-                        customPointAnnotation.textHaloColor = StyleColor.init(.black)
-                    } else {
-                        customPointAnnotation.textColor = StyleColor.init(.black)
-                        customPointAnnotation.textHaloColor = StyleColor.init(.white)
-                    }
-                    customPointAnnotation.textHaloWidth = 1
-                }
-                
-                pointAnnot.append(customPointAnnotation)
-            }
-            let pointAnnotation: MapboxPointAnnotation = .init(name: groupName, annotation: pointAnnot)
-            pois.append(pointAnnotation)
-            pointAnnotationManager?.annotations = pointAnnot
-        }
-    }
-    
-    func removePOIs(arguments: NSDictionary?, result: @escaping FlutterResult){
+
+    func addPOIs(arguments: NSDictionary?, result: @escaping FlutterResult) {
+        guard self.arguments != nil else { return }
+        let oPOIs = arguments?["poi"] as? NSDictionary ?? [:]
+        let image = arguments?["icon"] as? String ?? ""
         let groupName = arguments?["group"] as? String ?? ""
-        
-        for point in pois {
-            if(point.name == groupName){
-                for annot in point.annotation {
-                    pointAnnotationManager?.annotations.removeAll(where: { value -> Bool in value.id == annot.id })
+        let iconSize = arguments?["iconSize"] as? Double ?? 0.2
+        guard let imageData = Data(base64Encoded: image) else { return }
+
+        // Only track the newly created annotations for this group so that
+        // removePOIs never touches annotations belonging to other groups.
+        var newAnnotations: [PointAnnotation] = []
+
+        for item in oPOIs {
+            let point = item.value as! NSDictionary
+            guard let oID = point["Id"] as? String,
+                  let oName = point["Name"] as? String,
+                  let oLatitude = point["Latitude"] as? Double,
+                  let oLongitude = point["Longitude"] as? Double else { continue }
+
+            var customPointAnnotation = PointAnnotation(id: oID, coordinate: CLLocationCoordinate2D(latitude: oLatitude, longitude: oLongitude))
+            customPointAnnotation.image = .init(image: UIImage(data: imageData)!, name: groupName)
+            customPointAnnotation.iconSize = iconSize
+            customPointAnnotation.textField = oName
+            customPointAnnotation.textSize = 12
+            customPointAnnotation.textOffset = [0, 3]
+
+            if let style = _mapStyleUrlDay {
+                if style.contains("night") {
+                    customPointAnnotation.textColor = StyleColor(.white)
+                    customPointAnnotation.textHaloColor = StyleColor(.black)
+                } else {
+                    customPointAnnotation.textColor = StyleColor(.black)
+                    customPointAnnotation.textHaloColor = StyleColor(.white)
                 }
+                customPointAnnotation.textHaloWidth = 1
             }
-        }
-        
-        pois.removeAll(where: { value -> Bool in value.name == groupName })
-    }
-    
-    func updateCarmera(arguments: NSDictionary?, result: @escaping FlutterResult){
-        let initialLatitude = arguments?["latitude"] as? Double
-        let initialLongitude = arguments?["longitude"] as? Double
-        if(initialLatitude != nil && initialLongitude != nil)
-        {
-            moveCameraToCoordinates(latitude: initialLatitude!, longitude: initialLongitude!)
+            newAnnotations.append(customPointAnnotation)
         }
 
+        pois.append(MapboxPointAnnotation(name: groupName, annotation: newAnnotations))
+        var allAnnotations = pointAnnotationManager?.annotations ?? []
+        allAnnotations.append(contentsOf: newAnnotations)
+        pointAnnotationManager?.annotations = allAnnotations
         result(true)
     }
 
-    func clearRoute(arguments: NSDictionary?, result: @escaping FlutterResult)
-    {
-        _wayPoints.removeAll()
-        
-        if routeResponse == nil
-        {
-            result(true)
-            return
+    func selectRoute(arguments: NSDictionary?, result: @escaping FlutterResult) {
+        guard let index = arguments?["index"] as? Int, index > 0 else {
+            result(true); return  // index 0 = primary, nothing to do
         }
+        let altIndex = index - 1
+        guard let alts = navigationRoutes?.alternativeRoutes, altIndex < alts.count else {
+            result(false); return
+        }
+        let alt = alts[altIndex]
+        Task { [weak self] in
+            guard let self else { return }
+            guard let updated = try? await self.navigationRoutes?.selecting(alternativeRoute: alt) else {
+                result(false); return
+            }
+            await MainActor.run {
+                self.navigationRoutes = updated  // didSet triggers showCurrentRoute() → route_built event
+                result(true)
+            }
+        }
+    }
 
+    func removePOIs(arguments: NSDictionary?, result: @escaping FlutterResult) {
+        let groupName = arguments?["group"] as? String ?? ""
+        for group in pois where group.name == groupName {
+            let ids = Set(group.annotation.map { $0.id })
+            pointAnnotationManager?.annotations.removeAll { ids.contains($0.id) }
+        }
+        pois.removeAll { $0.name == groupName }
+        result(true)
+    }
+
+    func updateCamera(arguments: NSDictionary?, result: @escaping FlutterResult) {
+        if let lat = arguments?["latitude"] as? Double, let lon = arguments?["longitude"] as? Double {
+            moveCameraToCoordinates(latitude: lat, longitude: lon)
+        }
+        result(true)
+    }
+
+    func clearRoute(arguments: NSDictionary?, result: @escaping FlutterResult) {
+        _wayPoints.removeAll()
+        guard navigationRoutes != nil else { result(true); return }
         navigationMapView?.removeRoutes()
-        navigationMapView?.removeArrow()
-        navigationMapView?.removeRouteDurations()
-        navigationMapView?.removeWaypoints()
         _distanceRemaining = 0
         _durationRemaining = 0
-        
-        routeResponse = nil
+        navigationRoutes = nil
         result(true)
     }
 
-    func buildRoute(arguments: NSDictionary?, flutterResult: @escaping FlutterResult)
-    {
+    func buildRoute(arguments: NSDictionary?, flutterResult: @escaping FlutterResult) {
         isEmbeddedNavigation = true
         sendEvent(eventType: MapBoxEventType.route_building)
 
-        guard let oWayPoints = arguments?["wayPoints"] as? NSDictionary else {return}
-
+        guard let oWayPoints = arguments?["wayPoints"] as? NSDictionary else { return }
         var locations = [Location]()
 
-        for item in oWayPoints as NSDictionary
-        {
+        for item in oWayPoints as NSDictionary {
             let point = item.value as! NSDictionary
-            guard let oName = point["Name"] as? String else {return}
-            guard let oLatitude = point["Latitude"] as? Double else {return}
-            guard let oLongitude = point["Longitude"] as? Double else {return}
+            guard let oName = point["Name"] as? String,
+                  let oLatitude = point["Latitude"] as? Double,
+                  let oLongitude = point["Longitude"] as? Double else { return }
             let order = point["Order"] as? Int
-            let location = Location(name: oName, latitude: oLatitude, longitude: oLongitude, order: order)
-            locations.append(location)
+            locations.append(Location(name: oName, latitude: oLatitude, longitude: oLongitude, order: order))
         }
 
-        if(!_isOptimized)
-        {
-            //waypoints must be in the right order
-            locations.sort(by: {$0.order ?? 0 < $1.order ?? 0})
-        }
+        // See the matching comment in NavigationFactory.startNavigation —
+        // waypoints cross the platform channel as an order-unstable
+        // NSDictionary, so `order` must be sorted on unconditionally rather
+        // than only when `_isOptimized` is false.
+        locations.sort { $0.order ?? 0 < $1.order ?? 0 }
 
-        var i: Int = 0
-        for loc in locations
-        {
-            let point = Waypoint(coordinate: CLLocationCoordinate2D(latitude: loc.latitude!, longitude: loc.longitude!))
-            
-            if(i > 0 && i != locations.count-1){
-                point.separatesLegs = false
-            }
+        _wayPoints.removeAll()
+        for (i, loc) in locations.enumerated() {
+            var point = Waypoint(coordinate: CLLocationCoordinate2D(latitude: loc.latitude!, longitude: loc.longitude!))
+            if i > 0 && i != locations.count - 1 { point.separatesLegs = false }
             _wayPoints.append(point)
-            i+=1
         }
-        
+
         var mode: ProfileIdentifier = .automobileAvoidingTraffic
+        if _navigationMode == "cycling" { mode = .cycling }
+        else if _navigationMode == "driving" { mode = .automobile }
+        else if _navigationMode == "walking" { mode = .walking }
 
-        if (_navigationMode == "cycling")
-        {
-            mode = .cycling
-        }
-        else if(_navigationMode == "driving")
-        {
-            mode = .automobile
-        }
-        else if(_navigationMode == "walking")
-        {
-            mode = .walking
-        }
+        let routeOptions = UnscrambledRouteOptions(waypoints: _wayPoints, profileIdentifier: mode, queryItems: [])
 
-        let maxHeight = arguments?["maxHeight"] as? String
-        let maxWeight = arguments?["maxWeight"] as? String
-        let maxWidth = arguments?["maxWidth"] as? String
+        let avoid = arguments?["avoid"] as? [String] ?? _avoid ?? []
+        if !avoid.isEmpty { routeOptions.setExcludes(array: avoid) }
 
-        let items = [URLQueryItem]();
-                
-        let routeOptions = UnscrambledRouteOptions(waypoints: _wayPoints, profileIdentifier: mode, queryItems: items)
-        
-        let avoid = arguments?["avoid"] as? [String]
-        
-        if(avoid != nil && !avoid!.isEmpty)
-        {
-            routeOptions.setExcludes(array: avoid!)
-        }
-        else if (_avoid != nil && _avoid!.isEmpty )
-        {
-            routeOptions.setExcludes(array: _avoid!)
-        }
-        
-        var max_height = _maxHeight
-        var max_width = _maxWidth
-        var max_weight = _maxWeight
-        
-        if(maxHeight != nil)
-        {
-            max_height = Double(maxHeight!)!
-        }
-        
-        if(maxWidth != nil)
-        {
-            max_width = Double(maxWidth!)!
-        }
-        
-        if(maxWeight != nil)
-        {
-            max_weight = Double(maxWeight!)!
-        }
-        
-        routeOptions.maximumHeight = Measurement(value: max_height, unit: .meters)
-        routeOptions.maximumWidth = Measurement(value: max_width, unit: .meters)
-        routeOptions.maximumWeight = Measurement(value: max_weight, unit: .metricTons)
+        var maxHeight = _maxHeight
+        var maxWidth = _maxWidth
+        var maxWeight = _maxWeight
+        if let v = arguments?["maxHeight"] as? String { maxHeight = Double(v) ?? maxHeight }
+        if let v = arguments?["maxWidth"] as? String { maxWidth = Double(v) ?? maxWidth }
+        if let v = arguments?["maxWeight"] as? String { maxWeight = Double(v) ?? maxWeight }
 
-        if (_allowsUTurnAtWayPoints != nil)
-        {
-            routeOptions.allowsUTurnAtWaypoint = _allowsUTurnAtWayPoints!
-        }
-        
+        routeOptions.maximumHeight = Measurement<UnitLength>(value: maxHeight, unit: .meters)
+        routeOptions.maximumWidth = Measurement<UnitLength>(value: maxWidth, unit: .meters)
+        routeOptions.maximumWeight = Measurement<UnitMass>(value: maxWeight, unit: .metricTons)
+        if let allowsUTurn = _allowsUTurnAtWayPoints { routeOptions.allowsUTurnAtWaypoint = allowsUTurn }
         routeOptions.refreshingEnabled = _enableRefresh
         routeOptions.includesAlternativeRoutes = _alternatives
-        routeOptions.distanceMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
+        routeOptions.unitMeasurementSystem = _voiceUnits == "imperial" ? .imperial : .metric
         routeOptions.locale = Locale(identifier: _language)
         self.routeOptions = routeOptions
 
-        // Generate the route object and draw it on the map
-        _ = Directions.shared.calculate(routeOptions) { [weak self] (session, result) in
-            switch result {
-            case .failure(let error):
-                print(error.localizedDescription) // TODO -- throw this erro back to flutter
-                self?._routeBuildResponse = error.localizedDescription
-                self?.sendEvent(eventType: MapBoxEventType.route_build_failed)
-                flutterResult(true)
-            case .success(let response):
-                guard let strongSelf = self else { return }
-                strongSelf.routeResponse = response
-                strongSelf.navigationMapView?.showcase(response.routes!, routesPresentationStyle: .all(shouldFit: true), animated: true)
-                
-                strongSelf._distanceRemaining = response.routes!.first?.distance
-                strongSelf._durationRemaining = response.routes!.first?.expectedTravelTime
-                
-                strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
-                flutterResult(true)
+        // mapboxNavigationProvider is a shared, process-lifetime singleton (see
+        // NavigationFactory) — re-subscribe this view's Combine bridges to it
+        // rather than tearing down and recreating the provider itself, which
+        // is what used to race against Flutter's async platform-view teardown
+        // and trigger MapboxNavigationProvider's "instantiated twice" crash.
+        subscribeToNavigationProvider()
+
+        _routeCalculationTask?.cancel()
+        _routeCalculationTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let routes = try await self.mapboxNavigation
+                    .routingProvider()
+                    .calculateRoutes(options: routeOptions)
+                    .value
+                await MainActor.run {
+                    self.navigationRoutes = routes
+                    self.navigationMapView?.showcaseRoutes(routes, animated: true)
+                    self._distanceRemaining = routes.mainRoute.route.distance
+                    self._durationRemaining = routes.mainRoute.route.expectedTravelTime
+                    self.sendEvent(eventType: MapBoxEventType.route_built)
+                    flutterResult(true)
+                }
+            } catch {
+                await MainActor.run {
+                    self._routeBuildResponse = error.localizedDescription
+                    self.sendEvent(eventType: MapBoxEventType.route_build_failed)
+                    flutterResult(true)
+                }
             }
         }
     }
 
-
     func startEmbeddedNavigation(arguments: NSDictionary?, result: @escaping FlutterResult) {
-        guard let response = self.routeResponse else { return }
-        let navLocationManager = self._simulateRoute ? SimulatedLocationManager(route: response.routes!.first!) : NavigationLocationManager()
-        navigationService = MapboxNavigationService(routeResponse: response,
-                                                            routeIndex: selectedRouteIndex,
-                                                            routeOptions: routeOptions!,
-                                                            routingProvider: MapboxRoutingProvider(.hybrid),
-                                                            credentials: NavigationSettings.shared.directions.credentials,
-                                                            locationSource: navLocationManager,
-                                                    simulating: self._simulateRoute ? .always : .onPoorGPS)
-        navigationService.delegate = self
-        
-        var dayStyle = CustomDayStyle()
-        if(_mapStyleUrlDay != nil){
-            dayStyle = CustomDayStyle(url: _mapStyleUrlDay)
-        }
-        let nightStyle = CustomNightStyle()
-        if(_mapStyleUrlNight != nil){
-            nightStyle.mapStyleURL = URL(string: _mapStyleUrlNight!)!
-        }
-        let navigationOptions = NavigationOptions(styles: [dayStyle, nightStyle], navigationService: navigationService)
-        _navigationViewController = NavigationViewController(for: response, routeIndex: selectedRouteIndex, routeOptions: routeOptions!, navigationOptions: navigationOptions)
+        guard let response = self.navigationRoutes, let routeOptions else { return }
+        let dayStyle = makeDayStyle()
+        let nightStyle = makeNightStyle()
+        let navigationOptions = NavigationOptions(
+            mapboxNavigation: mapboxNavigation,
+            voiceController: mapboxNavigationProvider.routeVoiceController,
+            eventsManager: mapboxNavigationProvider.eventsManager(),
+            styles: [dayStyle, nightStyle],
+            predictiveCacheManager: mapboxNavigationProvider.predictiveCacheManager,
+            navigationMapView: navigationMapView
+        )
+        _navigationViewController = NavigationViewController(
+            navigationRoutes: response,
+            navigationOptions: navigationOptions
+        )
         _navigationViewController!.delegate = self
 
-        let flutterViewController = UIApplication.shared.delegate?.window?!.rootViewController as! FlutterViewController
+        guard let flutterViewController = rootFlutterViewController() else { return }
         flutterViewController.addChild(_navigationViewController!)
 
         let container = self.view()
@@ -537,240 +496,188 @@ public class FlutterMapboxNavigationView : NavigationFactory, FlutterPlatformVie
         constraintsWithPaddingBetween(holderView: container, topView: _navigationViewController!.view, padding: 0.0)
         flutterViewController.didMove(toParent: flutterViewController)
         result(true)
+    }
 
-    }
-        
     func startNonEmbeddedNavigation(arguments: NSDictionary?, result: @escaping FlutterResult) {
-        guard let response = self.routeResponse else { return }
+        guard let response = self.navigationRoutes else { return }
         isEmbeddedNavigation = false
-        
-        let navLocationManager = self._simulateRoute ? SimulatedLocationManager(route: response.routes!.first!) : NavigationLocationManager()
-        navigationService = MapboxNavigationService(routeResponse: response,
-                                                            routeIndex: selectedRouteIndex,
-                                                            routeOptions: routeOptions!,
-                                                            routingProvider: MapboxRoutingProvider(.hybrid),
-                                                            credentials: NavigationSettings.shared.directions.credentials,
-                                                            locationSource: navLocationManager,
-                                                    simulating: self._simulateRoute ? .always : .onPoorGPS)
-        
-        navigationService.delegate = self
-        
-        var dayStyle = CustomDayStyle()
-        if(_mapStyleUrlDay != nil){
-            dayStyle = CustomDayStyle(url: _mapStyleUrlDay)
+
+        let dayStyle = makeDayStyle()
+        let nightStyle = makeNightStyle()
+        let navigationOptions = NavigationOptions(
+            mapboxNavigation: mapboxNavigation,
+            voiceController: mapboxNavigationProvider.routeVoiceController,
+            eventsManager: mapboxNavigationProvider.eventsManager(),
+            styles: [dayStyle, nightStyle],
+            predictiveCacheManager: mapboxNavigationProvider.predictiveCacheManager
+        )
+
+        if _navigationViewController == nil {
+            _navigationViewController = NavigationViewController(
+                navigationRoutes: response,
+                navigationOptions: navigationOptions
+            )
+            _navigationViewController!.modalPresentationStyle = .fullScreen
+            _navigationViewController!.delegate = self
+            _navigationViewController!.navigationMapView?.localizeLabels()
         }
-        let nightStyle = CustomNightStyle()
-        if(_mapStyleUrlNight != nil){
-            nightStyle.mapStyleURL = URL(string: _mapStyleUrlNight!)!
-        }
-        
-        let navigationOptions = NavigationOptions(styles: [dayStyle, nightStyle], navigationService: navigationService)
-        
-        if(self._navigationViewController == nil)
-        {
-            self._navigationViewController = NavigationViewController(for: response, routeIndex: 0, routeOptions: routeOptions!, navigationOptions: navigationOptions)
-            self._navigationViewController!.modalPresentationStyle = .fullScreen
-            self._navigationViewController!.delegate = self
-            self._navigationViewController!.navigationMapView!.localizeLabels()
-        }
-        let flutterViewController = UIApplication.shared.delegate?.window??.rootViewController as! FlutterViewController
-        flutterViewController.present(self._navigationViewController!, animated: true, completion: nil)
+        guard let flutterViewController = rootFlutterViewController() else { return }
+        flutterViewController.present(_navigationViewController!, animated: true, completion: nil)
     }
-    
+
+    private func rootFlutterViewController() -> FlutterViewController? {
+        let keyWindow = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+            ?? UIApplication.shared.delegate?.window ?? nil
+        return keyWindow?.rootViewController as? FlutterViewController
+    }
+
     func constraintsWithPaddingBetween(holderView: UIView, topView: UIView, padding: CGFloat) {
-        guard holderView.subviews.contains(topView) else {
-            return
-        }
+        guard holderView.subviews.contains(topView) else { return }
         topView.translatesAutoresizingMaskIntoConstraints = false
-        let pinTop = NSLayoutConstraint(item: topView, attribute: .top, relatedBy: .equal,
-                                        toItem: holderView, attribute: .top, multiplier: 1.0, constant: padding)
-        let pinBottom = NSLayoutConstraint(item: topView, attribute: .bottom, relatedBy: .equal,
-                                           toItem: holderView, attribute: .bottom, multiplier: 1.0, constant: padding)
-        let pinLeft = NSLayoutConstraint(item: topView, attribute: .left, relatedBy: .equal,
-                                         toItem: holderView, attribute: .left, multiplier: 1.0, constant: padding)
-        let pinRight = NSLayoutConstraint(item: topView, attribute: .right, relatedBy: .equal,
-                                          toItem: holderView, attribute: .right, multiplier: 1.0, constant: padding)
-        holderView.addConstraints([pinTop, pinBottom, pinLeft, pinRight])
+        NSLayoutConstraint.activate([
+            topView.topAnchor.constraint(equalTo: holderView.topAnchor, constant: padding),
+            topView.bottomAnchor.constraint(equalTo: holderView.bottomAnchor, constant: -padding),
+            topView.leadingAnchor.constraint(equalTo: holderView.leadingAnchor, constant: padding),
+            topView.trailingAnchor.constraint(equalTo: holderView.trailingAnchor, constant: -padding)
+        ])
     }
 
     func moveCameraToCoordinates(latitude: Double, longitude: Double) {
-        let navigationViewportDataSource = NavigationViewportDataSource(navigationMapView.mapView, viewportDataSourceType: .raw)
-        navigationViewportDataSource.options.followingCameraOptions.zoomUpdatesAllowed = false
-        navigationViewportDataSource.followingMobileCamera.center = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-        navigationViewportDataSource.followingMobileCamera.zoom = _zoom
-        navigationViewportDataSource.followingMobileCamera.bearing = _bearing
-        navigationViewportDataSource.followingMobileCamera.pitch = _pitch
-        navigationViewportDataSource.followingMobileCamera.padding = .zero
-        navigationMapView.navigationCamera.viewportDataSource = navigationViewportDataSource
-    }
-    
-    func moveCameraToCenter()
-    {
-        let navigationViewportDataSource = NavigationViewportDataSource(navigationMapView.mapView, viewportDataSourceType: .raw)
-        navigationViewportDataSource.options.followingCameraOptions.zoomUpdatesAllowed = false
-        navigationViewportDataSource.followingMobileCamera.zoom = _zoom
-        navigationViewportDataSource.followingMobileCamera.pitch = _pitch
-        navigationViewportDataSource.followingMobileCamera.padding = .zero
-        //navigationViewportDataSource.followingMobileCamera.center = mapView?.centerCoordinate
-        navigationMapView.navigationCamera.viewportDataSource = navigationViewportDataSource
-        
-        // Create a camera that rotates around the same center point, rotating 180°.
-        // `fromDistance:` is meters above mean sea level that an eye would have to be in order to see what the map view is showing.
-        //let camera = NavigationCamera( Camera(lookingAtCenter: mapView.centerCoordinate, altitude: 2500, pitch: 15, heading: 180)
-
-        // Animate the camera movement over 5 seconds.
-        //navigationMapView.mapView.mapboxMap.setCamera(to: CameraOptions(center: navigationMapView.mapView.ma, zoom: 13.0))
-                                       //(camera, withDuration: duration, animationTimingFunction: CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut))
+        let cameraOptions = CameraOptions(
+            center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+            zoom: _zoom,
+            bearing: _bearing,
+            pitch: _pitch
+        )
+        navigationMapView.mapView.mapboxMap.setCamera(to: cameraOptions)
     }
 
+    func moveCameraToCenter() {
+        let cameraOptions = CameraOptions(
+            zoom: _zoom,
+            bearing: _bearing,
+            pitch: _pitch
+        )
+        navigationMapView.mapView.mapboxMap.setCamera(to: cameraOptions)
+    }
 }
 
 extension FlutterMapboxNavigationView: AnnotationInteractionDelegate {
     public func annotationManager(_ manager: AnnotationManager, didDetectTappedAnnotations annotations: [Annotation]) {
-        for poi in pois {
-            for annotation in poi.annotation {
-                if(annotation.id == annotations[0].id){
-                    _selectedAnnotation = annotation.id
-                    break
-                }
+        for group in pois {
+            for annotation in group.annotation where annotation.id == annotations[0].id {
+                _selectedAnnotation = annotation.id
+                break
             }
         }
         sendEvent(eventType: MapBoxEventType.annotation_tapped)
     }
 }
 
-extension FlutterMapboxNavigationView : NavigationServiceDelegate {
-    
-    public func navigationService(_ service: NavigationService, didUpdate progress: RouteProgress, with location: CLLocation, rawLocation: CLLocation) {
-        _lastKnownLocation = location
-        _distanceRemaining = progress.distanceRemaining
-        _durationRemaining = progress.durationRemaining
-        sendEvent(eventType: MapBoxEventType.navigation_running)
-        //_currentLegDescription =  progress.currentLeg.description
-        if(_eventSink != nil)
-        {
-            let jsonEncoder = JSONEncoder()
 
-            let progressEvent = MapBoxRouteProgressEvent(progress: progress)
-            let progressEventJsonData = try! jsonEncoder.encode(progressEvent)
-            let progressEventJson = String(data: progressEventJsonData, encoding: String.Encoding.ascii)
+extension FlutterMapboxNavigationView: NavigationMapViewDelegate {
+    public func mapViewDidFinishLoadingMap(_ mapView: NavigationMapView) {
+        _mapInitialized = true
+        sendEvent(eventType: MapBoxEventType.map_ready)
+        moveCameraToCenter()
+    }
 
-            _eventSink!(progressEventJson)
-
-            if(progress.isFinalLeg && progress.currentLegProgress.userHasArrivedAtWaypoint)
-            {
-                _eventSink = nil
-            }
+    public func navigationMapView(_ mapView: NavigationMapView, didSelect alternativeRoute: AlternativeRoute) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let updated = try? await self.navigationRoutes?.selecting(alternativeRoute: alternativeRoute) else { return }
+            await MainActor.run { self.navigationRoutes = updated }
         }
     }
 }
 
-extension FlutterMapboxNavigationView : NavigationMapViewDelegate {
-    
-    public func mapView(_ mapView: NavigationMapView) {
-        _mapInitialized = true
-        sendEvent(eventType: MapBoxEventType.map_ready)
+extension FlutterMapboxNavigationView: UIGestureRecognizerDelegate {
+    public func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        true
     }
 
-    public func navigationMapView(_ mapView: NavigationMapView, didSelect route: Route) {
-        self.currentRouteIndex = self.routeResponse!.routes?.firstIndex(of: route) ?? 0
-    }
-    
-    public func navigationMapView(_ mapView: NavigationMapView, didTap route: Route) {
-        self.currentRouteIndex = self.routeResponse!.routes?.firstIndex(of: route) ?? 0
-    }
-
-    public func mapViewDidFinishLoadingMap(_ mapView: NavigationMapView) {
-        // Wait for the map to load before initiating the first camera movement.
-        moveCameraToCenter()
-    }
-    
-}
-
-extension FlutterMapboxNavigationView : UIGestureRecognizerDelegate {
-    
-    public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        return true
-    }
-    
     @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .ended else { return }
         let location = navigationMapView.mapView.mapboxMap.coordinate(for: gesture.location(in: navigationMapView.mapView))
-        //requestRoute(destination: location)
-        print(location)
+        requestRoute(destination: location)
     }
-    
+
     func requestRoute(destination: CLLocationCoordinate2D) {
         sendEvent(eventType: MapBoxEventType.route_building)
-        
+
         guard let userLocation = navigationMapView.mapView.location.latestLocation else { return }
-        let location = CLLocation(latitude: userLocation.coordinate.latitude,
-                                  longitude: userLocation.coordinate.longitude)
-        let userWaypoint = Waypoint(location: location, heading: userLocation.heading, name: "Current Location")
+        let location = CLLocation(latitude: userLocation.coordinate.latitude, longitude: userLocation.coordinate.longitude)
+        let userWaypoint = Waypoint(coordinate: location.coordinate, name: "Current Location")
         let destinationWaypoint = Waypoint(coordinate: destination)
-        
+
         var mode: ProfileIdentifier = .automobileAvoidingTraffic
+        if _navigationMode == "cycling" { mode = .cycling }
+        else if _navigationMode == "driving" { mode = .automobile }
+        else if _navigationMode == "walking" { mode = .walking }
 
-        if (_navigationMode == "cycling")
-        {
-            mode = .cycling
-        }
-        else if(_navigationMode == "driving")
-        {
-            mode = .automobile
-        }
-        else if(_navigationMode == "walking")
-        {
-            mode = .walking
-        }
-        
-        let items = [URLQueryItem]();
+        let routeOptions = UnscrambledRouteOptions(waypoints: [userWaypoint, destinationWaypoint], profileIdentifier: mode, queryItems: [])
+        routeOptions.maximumHeight = Measurement<UnitLength>(value: _maxHeight, unit: .meters)
+        routeOptions.maximumWidth = Measurement<UnitLength>(value: _maxWidth, unit: .meters)
+        routeOptions.maximumWeight = Measurement<UnitMass>(value: _maxWeight, unit: .metricTons)
+        if let avoid = _avoid { routeOptions.setExcludes(array: avoid) }
 
-        let routeOptions = UnscrambledRouteOptions(waypoints: [userWaypoint, destinationWaypoint], profileIdentifier: mode, queryItems: items)
-        
-        routeOptions.maximumHeight = Measurement(value: _maxHeight, unit: .meters)
-        routeOptions.maximumWidth = Measurement(value: _maxWidth, unit: .meters)
-        routeOptions.maximumWeight = Measurement(value: _maxWeight, unit: .metricTons)
-
-        if(_avoid != nil)
-        {
-            routeOptions.setExcludes(array: _avoid!)
-        }
-        
-        Directions.shared.calculate(routeOptions) { [weak self] (session, result) in
-            if let strongSelf = self {
-                switch result {
-                case .failure(let error):
-                    print(error.localizedDescription)
-                    strongSelf.sendEvent(eventType: MapBoxEventType.route_build_failed)
-                    return
-                case .success(let response):
-                    guard let strongSelf = self else { return }
-                 
-                    strongSelf.routeResponse = response
-                    strongSelf.sendEvent(eventType: MapBoxEventType.route_built)
-                    strongSelf.navigationMapView?.showcase(response.routes!, routesPresentationStyle: .all(shouldFit: true), animated: true)
+        _routeCalculationTask?.cancel()
+        _routeCalculationTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let routes = try await self.mapboxNavigation.routingProvider()
+                    .calculateRoutes(options: routeOptions)
+                    .value
+                await MainActor.run {
+                    self.navigationRoutes = routes
+                    self.sendEvent(eventType: MapBoxEventType.route_built)
+                    self.navigationMapView?.showcaseRoutes(routes, animated: true)
+                }
+            } catch {
+                await MainActor.run {
+                    self.sendEvent(eventType: MapBoxEventType.route_build_failed)
                 }
             }
         }
     }
 }
 
+extension FlutterMapboxNavigationView: CLLocationManagerDelegate {
+    public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        locationBridge.send(location)
+    }
+
+    public func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        headingBridge.send(newHeading)
+    }
+
+    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        if manager.authorizationStatus == .authorizedWhenInUse ||
+           manager.authorizationStatus == .authorizedAlways {
+            manager.startUpdatingLocation()
+            manager.startUpdatingHeading()
+        }
+    }
+}
 
 class UnscrambledRouteOptions: NavigationRouteOptions {
-    /// The locations of some known pedestrian scrambles to avoid.
     public var excludePoints: [String] = []
-    
+
     override var urlQueryItems: [URLQueryItem] {
         var items = super.urlQueryItems
-        
-        if(!excludePoints.isEmpty) {
+        if !excludePoints.isEmpty {
             items.append(.init(name: "exclude", value: excludePoints.joined(separator: ",")))
         }
-        
         return items
     }
-        
+
     func setExcludes(array: [String]) {
         excludePoints = array
     }

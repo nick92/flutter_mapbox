@@ -158,6 +158,14 @@ class MapBoxNavigationViewController {
         .then<bool>((dynamic result) => result);
   }
 
+  /// Selects the route at [index] as the primary route (0 = already primary).
+  /// Returns true on success. Triggers a route_built event with reorganised data.
+  Future<bool> selectRoute({required int index}) async {
+    return await _methodChannel
+        .invokeMethod<bool>('selectRoute', {'index': index})
+        .then<bool>((dynamic result) => result ?? false);
+  }
+
   ///Build the Route Used for the Navigation
   ///
   /// [wayPoints] must not be null. A collection of [WayPoint](longitude, latitude and name). Must be at least 2 or at most 25. Cannot use drivingWithTraffic mode if more than 3-waypoints.

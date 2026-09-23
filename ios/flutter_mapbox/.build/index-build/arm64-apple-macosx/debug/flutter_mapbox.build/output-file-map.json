@@ -1,0 +1,103 @@
+{
+  "": {
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/primary.swiftdeps"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/EmbeddedNavigationView.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EmbeddedNavigationView.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EmbeddedNavigationView.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EmbeddedNavigationView~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EmbeddedNavigationView.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EmbeddedNavigationView.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/NavigationFactory.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationFactory.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationFactory.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationFactory~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationFactory.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationFactory.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/NavigationViewFactory.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationViewFactory.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationViewFactory.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationViewFactory~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationViewFactory.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/NavigationViewFactory.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/RouteOptionsViewController.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteOptionsViewController.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteOptionsViewController.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteOptionsViewController~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteOptionsViewController.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteOptionsViewController.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/SwiftFlutterMapboxPlugin.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/SwiftFlutterMapboxPlugin.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/SwiftFlutterMapboxPlugin.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/SwiftFlutterMapboxPlugin~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/SwiftFlutterMapboxPlugin.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/SwiftFlutterMapboxPlugin.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/models/EventType.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EventType.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EventType.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EventType~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EventType.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/EventType.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/models/Location.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Location.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Location.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Location~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Location.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Location.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/models/PointAnnotaion.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/PointAnnotaion.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/PointAnnotaion.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/PointAnnotaion~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/PointAnnotaion.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/PointAnnotaion.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/models/RouteEvent.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteEvent.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteEvent.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteEvent~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteEvent.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteEvent.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/models/RouteLeg.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteLeg.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteLeg.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteLeg~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteLeg.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteLeg.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/models/RouteProgressEvent.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteProgressEvent.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteProgressEvent.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteProgressEvent~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteProgressEvent.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteProgressEvent.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/models/RouteStep.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteStep.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteStep.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteStep~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteStep.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/RouteStep.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/styles/Day.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Day.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Day.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Day~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Day.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Day.dia"
+  },
+  "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/Sources/flutter_mapbox/styles/Night.swift": {
+    "dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Night.d",
+    "object": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Night.swift.o",
+    "swiftmodule": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Night~partial.swiftmodule",
+    "swift-dependencies": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Night.swiftdeps",
+    "diagnostics": "/Users/user/work/flutter_mapbox/ios/flutter_mapbox/.build/index-build/arm64-apple-macosx/debug/flutter_mapbox.build/Night.dia"
+  }
+}
