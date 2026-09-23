@@ -46,7 +46,7 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>MBXAccessToken</key>
-	<string>pk.eyJ1Ijoibmljazk5MiIsImEiOiJjbHJqMnNyancwOXdhMnBxcWRneDRqZDRhIn0.M89AJbBvg8OQEUlpl3Is6w</string>
+	<string>YOUR_MAPBOX_PUBLIC_TOKEN</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to location for navigation.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
@@ -55,15 +55,3 @@
 	<true/>
 </dict>
 </plist>
-Hi Modassir 
-
-<!-- Here are the keys require for the mapbox integration 
-Public key: pk.eyJ1Ijoibmljazk5MiIsImEiOiJjbHJqMnNyancwOXdhMnBxcWRneDRqZDRhIn0.M89AJbBvg8OQEUlpl3Is6w 
-Secret key: sk.eyJ1Ijoibmljazk5MiIsImEiOiJjbWs1ZGZkNTgwZnFxM2VzY3p5ZGJjMzNsIn0.z9GJ3vgldogy0cAJ7ThQpg
-
-This is just a temporary secret key that I will remove once the work is complete 
-
-Let me know if there are any issues with this 
-
-Thanks 
-Nick -->
