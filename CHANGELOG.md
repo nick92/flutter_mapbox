@@ -1,3 +1,32 @@
+## 1.0.1
+
+Android navigation fixes, and an iOS dependency pin.
+
+* **Route line under the labels.** The route line was anchored to a
+  `road-label` layer that Mapbox's navigation styles don't have (theirs is
+  `road-label-navigation`), so it was drawn over every label and the location
+  puck. It's now placed below whichever road-label layer the loaded style has,
+  in both the embedded view and full-screen navigation.
+* **Route clears after navigation.** The embedded view and full-screen
+  navigation each called `MapboxNavigationApp.setup()`, which destroys and
+  re-creates the navigation instance when already set up — leaving the other
+  holding a dead one, so `clearRoute()` did nothing. Setup now happens once and
+  the instance is shared. `clearRoute()` also clears the drawn line and arrows
+  directly and forgets the last route.
+* **Arrival and cancellation from full-screen navigation.** Full-screen
+  navigation now sends `on_arrival` at the final destination, and closing it
+  reports `navigation_finished` only after arrival — closing early is
+  `navigation_cancelled` (it used to always report finished).
+  `finishNavigation()` now also closes full-screen navigation.
+* **Events keep flowing with several map views.** Native events went to a
+  single sink owned by the last view to listen, and a view closing cleared it,
+  silencing every other view. Sinks are now a stack; a disposed view removes
+  only its own. Disposed views also unregister their navigation observers.
+* Full-screen navigation no longer stops the shared trip session on close,
+  which froze the embedded map's location puck.
+* **iOS:** `mapbox-navigation-ios` pinned to 3.24.x — from 3.31 its test-only
+  dependencies fail to resolve together in an app's Swift package workspace.
+
 ## 1.0.0
 
 **Breaking — moves both platforms to Mapbox Navigation SDK v3.**

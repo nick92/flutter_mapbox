@@ -51,7 +51,27 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
 
   companion object {
 
-    var eventSink:EventChannel.EventSink? = null
+    // Every native event goes to one sink — the most recent listener still
+    // alive. Kept as a stack so that when a map view goes away (e.g. a
+    // pushed screen's map), events fall back to the one underneath instead
+    // of stopping altogether.
+    private val eventSinks = mutableListOf<EventChannel.EventSink>()
+
+    var eventSink: EventChannel.EventSink? = null
+      private set
+
+    fun addEventSink(sink: EventChannel.EventSink?) {
+      if (sink == null) return
+      eventSinks.remove(sink)
+      eventSinks.add(sink)
+      eventSink = sink
+    }
+
+    fun removeEventSink(sink: EventChannel.EventSink?) {
+      if (sink == null) return
+      eventSinks.remove(sink)
+      eventSink = eventSinks.lastOrNull()
+    }
 
     var PERMISSION_REQUEST_CODE: Int = 367
 
@@ -198,12 +218,16 @@ class FlutterMapboxPlugin: FlutterPlugin, MethodCallHandler, EventChannel.Stream
   }
 
 
+  private var ownSink: EventChannel.EventSink? = null
+
   override fun onListen(args: Any?, events: EventChannel.EventSink?) {
-    eventSink = events;
+    ownSink = events
+    addEventSink(events)
   }
 
   override fun onCancel(args: Any?) {
-    eventSink = null;
+    removeEventSink(ownSink)
+    ownSink = null
   }
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {

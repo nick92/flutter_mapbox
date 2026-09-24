@@ -34,7 +34,10 @@ import com.mapbox.navigation.base.options.NavigationOptions
 import com.mapbox.navigation.base.route.NavigationRoute
 import com.mapbox.navigation.base.route.NavigationRouterCallback
 import com.mapbox.navigation.base.route.RouterFailure
+import com.mapbox.navigation.base.trip.model.RouteLegProgress
+import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.core.MapboxNavigation
+import com.mapbox.navigation.core.arrival.ArrivalObserver
 import com.mapbox.navigation.core.directions.session.RoutesObserver
 import com.mapbox.navigation.core.formatter.MapboxDistanceFormatter
 import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp
@@ -76,6 +79,7 @@ import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
 import com.nick92.flutter_mapbox.utilities.PluginUtilities.Companion.sendEvent
+import com.nick92.flutter_mapbox.utilities.RouteLineLayers
 import java.util.*
 
 class FullscreenNavActivity : AppCompatActivity() {
@@ -101,6 +105,9 @@ class FullscreenNavActivity : AppCompatActivity() {
     private val replayProgressObserver = ReplayProgressObserver(mapboxReplayer)
 
     private var mapIdleCancelable: Cancelable? = null
+    // Set on final-destination arrival. Decides whether closing this screen
+    // reports NAVIGATION_FINISHED or NAVIGATION_CANCELLED.
+    private var arrived = false
     private var isVoiceInstructionsMuted = true
 
     @SuppressLint("MissingPermission")
@@ -178,7 +185,12 @@ class FullscreenNavActivity : AppCompatActivity() {
     )
 
     private fun setupNavigationComponents() {
-        MapboxNavigationApp.setup(NavigationOptions.Builder(this).build())
+        // Reuse the app's MapboxNavigation (set up by the embedded map view).
+        // Calling setup() again would destroy it and orphan the embedded
+        // view — whose route line then never clears after navigation.
+        if (!MapboxNavigationApp.isSetup()) {
+            MapboxNavigationApp.setup(NavigationOptions.Builder(this).build())
+        }
         mapboxNavigation = MapboxNavigationApp.current()!!
 
         val mapboxMap = binding.mapView.mapboxMap
@@ -193,11 +205,9 @@ class FullscreenNavActivity : AppCompatActivity() {
         }
 
         routeLineApi = MapboxRouteLineApi(MapboxRouteLineApiOptions.Builder().build())
-        routeLineView = MapboxRouteLineView(
-            MapboxRouteLineViewOptions.Builder(this)
-                .routeLineBelowLayerId("road-label")
-                .build()
-        )
+        // Placeholder until the style loads — the real one needs to know the
+        // style's layers (see RouteLineLayers). Nothing can draw before then.
+        routeLineView = MapboxRouteLineView(MapboxRouteLineViewOptions.Builder(this).build())
         routeArrowView = MapboxRouteArrowView(RouteArrowOptions.Builder(this).build())
 
         val distanceFormatterOptions = mapboxNavigation.navigationOptions.distanceFormatterOptions
@@ -218,13 +228,23 @@ class FullscreenNavActivity : AppCompatActivity() {
         voiceInstructionsPlayer = MapboxVoiceInstructionsPlayer(this, language)
 
         val styleUrl = FlutterMapboxPlugin.mapStyleUrlDay ?: Style.MAPBOX_STREETS
-        mapboxMap.loadStyle(styleUrl) {
+        mapboxMap.loadStyle(styleUrl) { style ->
+            // Under the road labels of *this* style, before anything is drawn.
+            routeLineView = MapboxRouteLineView(RouteLineLayers.viewOptions(this, style))
             binding.mapView.location.apply {
                 setLocationProvider(navigationLocationProvider)
                 locationPuck = createDefault2DPuck(withBearing = true)
                 puckBearing = PuckBearing.COURSE
                 puckBearingEnabled = true
                 enabled = true
+            }
+            // Routes set before the style finished loading weren't drawn (no
+            // style yet) — draw them now, under the labels.
+            val routes = mapboxNavigation.getNavigationRoutes()
+            if (routes.isNotEmpty()) {
+                routeLineApi.setNavigationRoutes(routes) { value ->
+                    routeLineView.renderRouteDrawData(style, value)
+                }
             }
         }
     }
@@ -251,6 +271,7 @@ class FullscreenNavActivity : AppCompatActivity() {
         mapboxNavigation.registerLocationObserver(locationObserver)
         mapboxNavigation.registerVoiceInstructionsObserver(voiceInstructionsObserver)
         mapboxNavigation.registerRouteProgressObserver(replayProgressObserver)
+        mapboxNavigation.registerArrivalObserver(arrivalObserver)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -275,7 +296,10 @@ class FullscreenNavActivity : AppCompatActivity() {
         mapboxNavigation.unregisterLocationObserver(locationObserver)
         mapboxNavigation.unregisterVoiceInstructionsObserver(voiceInstructionsObserver)
         mapboxNavigation.unregisterRouteProgressObserver(replayProgressObserver)
-        mapboxNavigation.stopTripSession()
+        mapboxNavigation.unregisterArrivalObserver(arrivalObserver)
+        // No stopTripSession(): the session is shared with the embedded map,
+        // whose location puck would freeze. The app stops it via
+        // finishNavigation / clearRoute.
     }
 
     override fun onDestroy() {
@@ -289,7 +313,9 @@ class FullscreenNavActivity : AppCompatActivity() {
         voiceInstructionsPlayer.shutdown()
         try { receiver?.let { unregisterReceiver(it) } } catch (e: Exception) {}
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        sendEvent(MapBoxEvents.NAVIGATION_FINISHED)
+        // Closed without reaching the destination (the stop button, back) is a
+        // cancellation — the app must not treat it as a completed journey.
+        sendEvent(if (arrived) MapBoxEvents.NAVIGATION_FINISHED else MapBoxEvents.NAVIGATION_CANCELLED)
     }
 
     private fun findRoute(origin: Point, destination: Point) {
@@ -342,6 +368,18 @@ class FullscreenNavActivity : AppCompatActivity() {
             )
             viewportDataSource.onLocationChanged(locationMatcherResult.enhancedLocation)
             viewportDataSource.evaluate()
+        }
+    }
+
+    private val arrivalObserver = object : ArrivalObserver {
+        override fun onWaypointArrival(routeProgress: RouteProgress) {}
+        override fun onNextRouteLegStart(routeLegProgress: RouteLegProgress) {}
+        override fun onFinalDestinationArrival(routeProgress: RouteProgress) {
+            if (arrived) return
+            arrived = true
+            // The app shows its arrival state, then calls finishNavigation,
+            // which closes this screen (see FullscreenNavigationLauncher).
+            sendEvent(MapBoxEvents.ON_ARRIVAL)
         }
     }
 

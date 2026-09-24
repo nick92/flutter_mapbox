@@ -90,6 +90,7 @@ import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxPointAnnotaions
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
+import com.nick92.flutter_mapbox.utilities.RouteLineLayers
 import com.nick92.flutter_mapbox.views.FullscreenNavigationLauncher
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -114,8 +115,13 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
         setOptions(arguments)
 
-        // initialize Mapbox Navigation — access token is read from mapbox_access_token string resource
-        MapboxNavigationApp.setup(NavigationOptions.Builder(context).build())
+        // initialize Mapbox Navigation — access token is read from mapbox_access_token string resource.
+        // Only once per app: setup() on an already set-up app destroys the
+        // live MapboxNavigation and makes a new one, leaving every other map
+        // view (and full-screen navigation) holding a dead instance.
+        if (!MapboxNavigationApp.isSetup()) {
+            MapboxNavigationApp.setup(NavigationOptions.Builder(context).build())
+        }
         MapboxNavigationApp.attach(this.activity as LifecycleOwner)
 
         mapboxNavigation = MapboxNavigationApp.current()!!
@@ -173,11 +179,10 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
 
         // initialize route line — Maps SDK v11 uses routeLineBelowLayerId (no "with" prefix)
         val mapboxRouteLineApiOptions = MapboxRouteLineApiOptions.Builder().build()
-        val mapboxRouteLineViewOptions = MapboxRouteLineViewOptions.Builder(activity)
-            .routeLineBelowLayerId("road-label")
-            .build()
         routeLineApi = MapboxRouteLineApi(mapboxRouteLineApiOptions)
-        routeLineView = MapboxRouteLineView(mapboxRouteLineViewOptions)
+        // Placeholder until the style loads — rebuilt in the loadStyle
+        // callback under that style's road labels (see RouteLineLayers).
+        routeLineView = MapboxRouteLineView(MapboxRouteLineViewOptions.Builder(activity).build())
 
         val routeArrowOptions = RouteArrowOptions.Builder(activity).build()
         routeArrowView = MapboxRouteArrowView(routeArrowOptions)
@@ -185,7 +190,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         var styleUrl = FlutterMapboxPlugin.mapStyleUrlDay
         if (styleUrl == null) styleUrl = Style.MAPBOX_STREETS
 
-        mapboxMap.loadStyle(styleUrl) {
+        mapboxMap.loadStyle(styleUrl) { style ->
+            routeLineView = MapboxRouteLineView(RouteLineLayers.viewOptions(activity, style))
             mapView.location.apply {
                 setLocationProvider(navigationLocationProvider)
                 locationPuck = createDefault2DPuck(withBearing = true)
@@ -580,6 +586,17 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     private fun clearRoute(methodCall: MethodCall, result: MethodChannel.Result) {
         mapboxNavigation.setNavigationRoutes(listOf())
         mapboxReplayer.stop()
+        FlutterMapboxPlugin.currentRoute = null
+        // Clear the drawing directly too, rather than relying on the routes
+        // observer — it may not fire if the routes were already empty.
+        mapboxMap.style?.let { style ->
+            routeLineApi.clearRouteLine { value ->
+                routeLineView.renderClearRouteLineValue(style, value)
+            }
+            routeArrowView.render(style, routeArrowApi.clearArrows())
+        }
+        viewportDataSource.clearRouteData()
+        viewportDataSource.evaluate()
         result.success(true)
     }
 
@@ -647,6 +664,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     private fun finishNavigation(isOffRouted: Boolean = false) {
+        // Closes full-screen navigation if it's open (e.g. the app finishing
+        // navigation after arrival); a no-op otherwise.
+        FullscreenNavigationLauncher.stopNavigation(activity)
         mapboxNavigation.setNavigationRoutes(listOf())
 
         zoom = zoom
@@ -770,6 +790,14 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     fun onDestroy() {
+        // The MapboxNavigation instance is shared and outlives this view —
+        // stop it calling into a disposed map.
+        try { unregisterObservers() } catch (_: Exception) {}
+        // The Dart side doesn't cancel its event subscription when the view
+        // is disposed, so onCancel may never come — drop this view's sink here
+        // or every later event would go to a dead view.
+        FlutterMapboxPlugin.removeEventSink(ownEventSink)
+        ownEventSink = null
         mapIdleCancelable?.cancel()
         cameraChangeCancelable?.cancel()
         MapboxNavigationProvider.destroy()
@@ -781,12 +809,16 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         voiceInstructionsPlayer.shutdown()
     }
 
+    private var ownEventSink: EventChannel.EventSink? = null
+
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        FlutterMapboxPlugin.eventSink = events
+        ownEventSink = events
+        FlutterMapboxPlugin.addEventSink(events)
     }
 
     override fun onCancel(arguments: Any?) {
-        FlutterMapboxPlugin.eventSink = null
+        FlutterMapboxPlugin.removeEventSink(ownEventSink)
+        ownEventSink = null
     }
 
     val context: Context = ctx

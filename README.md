@@ -6,7 +6,7 @@
 
 Add turn-by-turn navigation to your Flutter app using the Mapbox Navigation SDK — without ever leaving your app.
 
-Powered by **Mapbox Navigation SDK v3** on both platforms — `navigationcore` 3.23.0 on Android, `mapbox-navigation-ios` 3.24+ (Swift Package Manager) on iOS.
+Powered by **Mapbox Navigation SDK v3** on both platforms — `navigationcore` 3.23.0 on Android, `mapbox-navigation-ios` 3.24.x (Swift Package Manager) on iOS.
 
 ---
 

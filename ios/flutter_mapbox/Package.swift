@@ -11,9 +11,12 @@ let package = Package(
     dependencies: [
         // Flutter injects this local package during build
         .package(name: "FlutterFramework", path: "../FlutterFramework"),
+        // Pinned to 3.24.x: from 3.31 its test-only dependencies
+        // (swift-snapshot-testing / swift-custom-dump) fail to resolve
+        // together in an app's workspace. Widen deliberately, after checking.
         .package(
             url: "https://github.com/mapbox/mapbox-navigation-ios.git",
-            from: "3.24.0"
+            .upToNextMinor(from: "3.24.0")
         )
     ],
     targets: [

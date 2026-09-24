@@ -20,6 +20,9 @@ open class FullscreenNavigationLauncher {
         fun stopNavigation(activity: Activity) {
             val stopIntent = Intent()
             stopIntent.action = KEY_STOP_NAVIGATION
+            // Explicit to this app — implicit broadcasts are unreliable on
+            // recent Android versions.
+            stopIntent.setPackage(activity.packageName)
             activity.sendBroadcast(stopIntent)
         }
     }
