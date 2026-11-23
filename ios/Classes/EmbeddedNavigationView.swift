@@ -35,6 +35,9 @@ public class FlutterMapboxNavigationView: NavigationFactory, FlutterPlatformView
     var locationManager = CLLocationManager()
     var _selectedAnnotation: String?
     var pointAnnotationManager: PointAnnotationManager?
+    // Exempt from the zoom cut-off in onCameraChangeListener, and from collisions.
+    var alwaysVisibleManager: PointAnnotationManager?
+    var alwaysVisiblePOIs: [String: [PointAnnotation]] = [:]
     var pois = [MapboxPointAnnotation]()
     var mapMoved = false
     var centerCoords: [Double] = []
@@ -93,6 +96,8 @@ public class FlutterMapboxNavigationView: NavigationFactory, FlutterPlatformView
                 self.addPOIs(arguments: arguments, result: result)
             case "removePOIs":
                 self.removePOIs(arguments: arguments, result: result)
+            case "showNavigationAlert":
+                self.showNavigationAlert(arguments: arguments, result: result)
             case "selectRoute":
                 self.selectRoute(arguments: arguments, result: result)
             default:
@@ -107,22 +112,9 @@ public class FlutterMapboxNavigationView: NavigationFactory, FlutterPlatformView
         _distanceRemaining = navigationRoutes.mainRoute.route.distance
         _durationRemaining = navigationRoutes.mainRoute.route.expectedTravelTime
 
-        // One entry per route, main first. `coordinates` is the route line as
-        // [[lng, lat], ...] so the app can check it against its restrictions.
-        func routeEntry(_ route: Route) -> [String: Any] {
-            let coords = (route.shape?.coordinates ?? []).map { [$0.longitude, $0.latitude] }
-            return [
-                "duration": route.expectedTravelTime,
-                "distance": route.distance,
-                "coordinates": coords
-            ]
-        }
-        var routeData: [[String: Any]] = [routeEntry(navigationRoutes.mainRoute.route)]
-        for alt in navigationRoutes.alternativeRoutes {
-            routeData.append(routeEntry(alt.route))
-        }
-        if let jsonData = try? JSONSerialization.data(withJSONObject: routeData),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
+        // One entry per route, main first (see routeEntry).
+        let routes = [navigationRoutes.mainRoute.route] + navigationRoutes.alternativeRoutes.map { $0.route }
+        if let jsonString = Self.routesJson(routes) {
             sendEvent(eventType: MapBoxEventType.route_built, data: jsonString)
         } else {
             sendEvent(eventType: MapBoxEventType.route_built)
@@ -171,6 +163,7 @@ public class FlutterMapboxNavigationView: NavigationFactory, FlutterPlatformView
 
         pointAnnotationManager?.delegate = nil
         pointAnnotationManager = nil
+        alwaysVisibleManager = nil
         navigationRoutes = nil
         navigationMapView?.delegate = nil
         navigationMapView = nil
@@ -211,6 +204,10 @@ public class FlutterMapboxNavigationView: NavigationFactory, FlutterPlatformView
         let mapView = navigationMapView.mapView
         pointAnnotationManager = mapView.annotations.makePointAnnotationManager()
         pointAnnotationManager?.delegate = self
+        alwaysVisibleManager = mapView.annotations.makePointAnnotationManager(id: "always_visible_pois")
+        alwaysVisibleManager?.iconAllowOverlap = true
+        alwaysVisibleManager?.iconIgnorePlacement = true
+        alwaysVisibleManager?.textOptional = true
 
         if let arguments {
             _language = arguments["language"] as? String ?? _language
@@ -325,6 +322,13 @@ public class FlutterMapboxNavigationView: NavigationFactory, FlutterPlatformView
             newAnnotations.append(customPointAnnotation)
         }
 
+        if arguments?["alwaysVisible"] as? Bool == true {
+            alwaysVisiblePOIs[groupName, default: []].append(contentsOf: newAnnotations)
+            alwaysVisibleManager?.annotations.append(contentsOf: newAnnotations)
+            result(true)
+            return
+        }
+
         pois.append(MapboxPointAnnotation(name: groupName, annotation: newAnnotations))
         var allAnnotations = pointAnnotationManager?.annotations ?? []
         allAnnotations.append(contentsOf: newAnnotations)
@@ -355,6 +359,12 @@ public class FlutterMapboxNavigationView: NavigationFactory, FlutterPlatformView
 
     func removePOIs(arguments: NSDictionary?, result: @escaping FlutterResult) {
         let groupName = arguments?["group"] as? String ?? ""
+        if let points = alwaysVisiblePOIs.removeValue(forKey: groupName) {
+            let ids = Set(points.map { $0.id })
+            alwaysVisibleManager?.annotations.removeAll { ids.contains($0.id) }
+            result(true)
+            return
+        }
         for group in pois where group.name == groupName {
             let ids = Set(group.annotation.map { $0.id })
             pointAnnotationManager?.annotations.removeAll { ids.contains($0.id) }

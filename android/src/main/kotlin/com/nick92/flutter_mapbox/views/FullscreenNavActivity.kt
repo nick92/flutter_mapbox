@@ -11,6 +11,11 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -79,10 +84,28 @@ import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
 import com.nick92.flutter_mapbox.utilities.PluginUtilities.Companion.sendEvent
+import com.nick92.flutter_mapbox.utilities.RouteEvents
 import com.nick92.flutter_mapbox.utilities.RouteLineLayers
+import java.lang.ref.WeakReference
 import java.util.*
 
 class FullscreenNavActivity : AppCompatActivity() {
+
+    companion object {
+        // The open navigation screen, if any — the app shows alerts on it
+        // via showNavigationAlert while it covers the Flutter UI.
+        private var current: WeakReference<FullscreenNavActivity>? = null
+
+        /** Shows [message] on the open navigation screen. False if none is open. */
+        fun showAlert(message: String, speak: Boolean): Boolean {
+            val activity = current?.get() ?: return false
+            if (activity.isFinishing) return false
+            activity.runOnUiThread { activity.showAlertBanner(message, speak) }
+            return true
+        }
+    }
+
+    private var alertBanner: TextView? = null
 
     private var receiver: BroadcastReceiver? = null
     private var points: MutableList<Point> = mutableListOf()
@@ -113,6 +136,7 @@ class FullscreenNavActivity : AppCompatActivity() {
     @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        current = WeakReference(this)
         setTheme(androidx.appcompat.R.style.Theme_AppCompat_NoActionBar)
         binding = NavigationActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -304,6 +328,7 @@ class FullscreenNavActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (current?.get() === this) current = null
         mapIdleCancelable?.cancel()
         mapboxReplayer.finish()
         maneuverApi.cancel()
@@ -316,6 +341,47 @@ class FullscreenNavActivity : AppCompatActivity() {
         // Closed without reaching the destination (the stop button, back) is a
         // cancellation — the app must not treat it as a completed journey.
         sendEvent(if (arrived) MapBoxEvents.NAVIGATION_FINISHED else MapBoxEvents.NAVIGATION_CANCELLED)
+    }
+
+    // A warning from the app (e.g. a restriction on a rerouted road): a red
+    // banner above the trip progress, read out once, until tapped away or
+    // replaced by the next one.
+    private fun showAlertBanner(message: String, speak: Boolean) {
+        alertBanner?.let { binding.root.removeView(it) }
+        val density = resources.displayMetrics.density
+        val banner = TextView(this).apply {
+            id = View.generateViewId()
+            text = message
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            setTypeface(typeface, Typeface.BOLD)
+            val pad = (14 * density).toInt()
+            setPadding(pad, pad, pad, pad)
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#E02B2B"))
+                cornerRadius = 12 * density
+            }
+            elevation = 8 * density
+            setOnClickListener {
+                binding.root.removeView(this)
+                if (alertBanner === this) alertBanner = null
+            }
+        }
+        val margin = (12 * density).toInt()
+        val params = ConstraintLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+            endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+            bottomToTop = binding.tripProgressCard.id
+            setMargins(margin, 0, margin, margin)
+        }
+        binding.root.addView(banner, params)
+        alertBanner = banner
+        if (speak) {
+            voiceInstructionsPlayer.play(
+                SpeechAnnouncement.Builder(message).build(),
+                MapboxNavigationConsumer { },
+            )
+        }
     }
 
     private fun findRoute(origin: Point, destination: Point) {
@@ -438,7 +504,7 @@ class FullscreenNavActivity : AppCompatActivity() {
             }
             viewportDataSource.onRouteChanged(routeUpdateResult.navigationRoutes.first())
             viewportDataSource.evaluate()
-            sendEvent(MapBoxEvents.REROUTE_ALONG)
+            RouteEvents.onRoutesUpdated(routeUpdateResult)
         } else {
             val style = binding.mapView.mapboxMap.style
             if (style != null) {

@@ -90,6 +90,8 @@ import com.nick92.flutter_mapbox.models.MapBoxEvents
 import com.nick92.flutter_mapbox.models.MapBoxPointAnnotaions
 import com.nick92.flutter_mapbox.models.MapBoxRouteProgressEvent
 import com.nick92.flutter_mapbox.utilities.PluginUtilities
+import com.nick92.flutter_mapbox.utilities.RouteEvents
+import com.nick92.flutter_mapbox.views.FullscreenNavActivity
 import com.nick92.flutter_mapbox.utilities.RouteLineLayers
 import com.nick92.flutter_mapbox.views.FullscreenNavigationLauncher
 import io.flutter.plugin.common.EventChannel
@@ -237,6 +239,11 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         val annotationApi = mapView.annotations
         pointAnnotationManager = annotationApi.createPointAnnotationManager()
         pointAnnotationManager.addClickListener(onPointAnnotationClickListener)
+        alwaysVisibleManager = annotationApi.createPointAnnotationManager().apply {
+            iconAllowOverlap = true
+            iconIgnorePlacement = true
+            textOptional = true
+        }
 
         isVoiceInstructionsMuted = true
 
@@ -295,6 +302,12 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
             "finishNavigation" -> {
                 finishNavigation(methodCall, result)
+            }
+            "showNavigationAlert" -> {
+                val args = methodCall.arguments as? Map<*, *>
+                val message = args?.get("message") as? String
+                val speak = args?.get("speak") as? Boolean ?: true
+                result.success(message != null && FullscreenNavActivity.showAlert(message, speak))
             }
             "getDistanceRemaining" -> {
                 result.success(distanceRemaining)
@@ -405,7 +418,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                     durationRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.duration()
                     distanceRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.distance()
 
-                    PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT, routesJson(routes))
+                    PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT, RouteEvents.routesJson(routes))
                     mapboxNavigation.setNavigationRoutes(routes)
                     navigationCamera.requestNavigationCameraToOverview()
                     isBuildingRoute = false
@@ -443,6 +456,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             val groupName = arguments["group"] as? String
             val base64Image = arguments["icon"] as? String
             var iconSize = arguments["iconSize"] as? Double
+            val alwaysVisible = arguments["alwaysVisible"] as? Boolean ?: false
             val poiPoints = arguments["poi"] as? HashMap<*, *>
             var poiImage: ByteArray? = null
 
@@ -455,7 +469,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
 
             val image = BitmapFactory.decodeByteArray(poiImage, 0, poiImage!!.size)
-            addPOIAnnotations(groupName!!, image, iconSize, poiPoints!!)
+            addPOIAnnotations(groupName!!, image, iconSize, poiPoints!!, alwaysVisible)
         }
         result.success(true)
     }
@@ -470,7 +484,13 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         result.success(true)
     }
 
-    private fun addPOIAnnotations(groupName: String, poiImage: Bitmap, iconSize: Double, pois: HashMap<*, *>) {
+    private fun addPOIAnnotations(
+        groupName: String,
+        poiImage: Bitmap,
+        iconSize: Double,
+        pois: HashMap<*, *>,
+        alwaysVisible: Boolean,
+    ) {
         val newPoints = mutableListOf<PointAnnotationOptions>()
 
         for (item in pois) {
@@ -480,7 +500,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             val latitude = poi["Latitude"] as Double
             val longitude = poi["Longitude"] as Double
 
-            if (containsName(id)) continue
+            if (!alwaysVisible && containsName(id)) continue
 
             val pointAnnotationOptions = PointAnnotationOptions()
                 .withPoint(Point.fromLngLat(longitude, latitude))
@@ -500,6 +520,11 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
             pointAnnotationOptions.textHaloWidth = 1.0
 
+            if (alwaysVisible) {
+                newPoints.add(pointAnnotationOptions)
+                continue
+            }
+
             val pointAnnotaion = MapBoxPointAnnotaions()
             pointAnnotaion.id = id
             pointAnnotaion.groupName = groupName
@@ -509,12 +534,20 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             newPoints.add(pointAnnotationOptions)
         }
 
-        if (newPoints.isNotEmpty()) {
+        if (newPoints.isEmpty()) return
+        if (alwaysVisible) {
+            alwaysVisibleGroups.getOrPut(groupName) { mutableListOf() }
+                .addAll(alwaysVisibleManager.create(newPoints))
+        } else {
             pointAnnotationManager.create(newPoints)
         }
     }
 
     private fun removePOIsByGroupName(groupName: String) {
+        alwaysVisibleGroups.remove(groupName)?.let {
+            alwaysVisibleManager.delete(it)
+            return
+        }
         val pointAnnotaions = pointAnnotationManager.annotations
         val listOfPois = listOfPoints.filter { it.groupName == groupName }
 
@@ -554,33 +587,8 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
         distanceRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.distance()
 
         mapboxNavigation.setNavigationRoutes(reOrderedRoutes)
-        PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT, routesJson(reOrderedRoutes))
+        PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT, RouteEvents.routesJson(reOrderedRoutes))
         result.success(true)
-    }
-
-    // route_built payload: one entry per route, primary first. `coordinates` is
-    // the route line as [[lng, lat], ...] so the app can check it against its
-    // own restrictions data.
-    private fun routesJson(routes: List<NavigationRoute>): String {
-        val routesJson = org.json.JSONArray()
-        for (r in routes) {
-            val obj = org.json.JSONObject()
-            obj.put("duration", r.directionsRoute.duration() ?: 0.0)
-            obj.put("distance", r.directionsRoute.distance() ?: 0.0)
-            val coords = org.json.JSONArray()
-            val geometry = r.directionsRoute.geometry()
-            if (geometry != null) {
-                // applyDefaultNavigationOptions requests polyline6.
-                val precision =
-                    if (r.directionsRoute.routeOptions()?.geometries() == DirectionsCriteria.GEOMETRY_POLYLINE) 5 else 6
-                for (p in LineString.fromPolyline(geometry, precision).coordinates()) {
-                    coords.put(org.json.JSONArray().put(p.longitude()).put(p.latitude()))
-                }
-            }
-            obj.put("coordinates", coords)
-            routesJson.put(obj)
-        }
-        return routesJson.toString()
     }
 
     private fun clearRoute(methodCall: MethodCall, result: MethodChannel.Result) {
@@ -924,6 +932,9 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
     }
 
     private var listOfPoints: MutableList<MapBoxPointAnnotaions> = mutableListOf()
+    // Exempt from the zoom cut-off in subscribeCameraChanged, and from collisions.
+    private lateinit var alwaysVisibleManager: PointAnnotationManager
+    private val alwaysVisibleGroups = mutableMapOf<String, MutableList<PointAnnotation>>()
     private lateinit var selectedAnnotation: String
     private lateinit var pointAnnotationManager: PointAnnotationManager
 
@@ -1045,7 +1056,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
             }
             viewportDataSource.onRouteChanged(routeUpdateResult.navigationRoutes.first())
             viewportDataSource.evaluate()
-            PluginUtilities.sendEvent(MapBoxEvents.REROUTE_ALONG, routeUpdateResult.reason)
+            RouteEvents.onRoutesUpdated(routeUpdateResult)
         } else {
             val style = mapboxMap.style
             if (style != null) {
@@ -1071,7 +1082,7 @@ open class EmbeddedNavigationView(ctx: Context, act: Activity, bind: MapActivity
                 durationRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.duration()
                 distanceRemaining = FlutterMapboxPlugin.currentRoute!!.directionsRoute.distance()
                 mapboxNavigation.setNavigationRoutes(reOrderedRoutes)
-                PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT, routesJson(reOrderedRoutes))
+                PluginUtilities.sendEvent(MapBoxEvents.ROUTE_BUILT, RouteEvents.routesJson(reOrderedRoutes))
             }
         }
         false

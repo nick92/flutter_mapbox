@@ -106,6 +106,17 @@ void main() {
   });
 
   group('POIs', () {
+    test('setPOI asks for always-visible points only when told to', () async {
+      await controller.setPOI(
+        groupName: 'stops',
+        image: 'base64png',
+        iconSize: 2.8,
+        wayPoints: [destination],
+        alwaysVisible: true,
+      );
+      expect((calls.single.arguments as Map)['alwaysVisible'], true);
+    });
+
     test('setPOI sends the group, icon and points with ids', () async {
       await controller.setPOI(
         groupName: 'bridges',

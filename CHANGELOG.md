@@ -1,3 +1,18 @@
+## Unreleased
+
+* **`setPOI(alwaysVisible: true)`** keeps a group on the map at every zoom, on
+  both platforms: past the zoom 8 cut-off that clears other POIs, and with its
+  icons never hidden by a collision (a label may still drop out). These points
+  don't send `annotation_tapped`.
+* **`reroute_along` carries the new route.** When the SDK reroutes during
+  navigation, the event now has the route in `route_built`'s shape
+  (`[{duration, distance, coordinates}]`), on both platforms, so the app can
+  check the new road too. It's sent only for a real reroute — no longer for
+  every route update — and once, although Android's embedded map and
+  full-screen navigation both observe it.
+* **`showNavigationAlert({message, speak})`** shows a red banner over the open
+  full-screen navigation and reads it out; returns false if none is open.
+
 ## 1.0.1
 
 Android navigation fixes, and an iOS dependency pin.

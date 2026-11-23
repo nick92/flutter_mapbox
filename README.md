@@ -273,6 +273,26 @@ case MapBoxEvent.route_built:
   break;
 ```
 
+### Reroutes during navigation: `reroute_along`
+
+When the SDK reroutes mid-navigation (the driver left the route), the plugin
+sends `reroute_along` with the new route in the same shape as `route_built`
+(one entry). Other route updates — traffic refreshes, alternatives — aren't
+sent. Check it as you would the original route, then tell the driver:
+
+```dart
+case MapBoxEvent.reroute_along:
+  final routes = jsonDecode(jsonDecode(e.data as String) as String) as List;
+  // ... check routes.first['coordinates'] ...
+  await _controller.showNavigationAlert(
+      message: 'Low bridge on your new route in 2 miles');
+  break;
+```
+
+`showNavigationAlert` puts a red banner over the full-screen navigation and
+reads it out (`speak: false` to skip that); a tap dismisses it and the next
+alert replaces it. It returns false when no navigation screen is open.
+
 ### Choosing an alternative route
 
 ```dart

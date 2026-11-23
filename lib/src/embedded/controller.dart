@@ -123,7 +123,8 @@ class MapBoxNavigationViewController {
       {required String groupName,
       required String image,
       required double iconSize,
-      required List<WayPoint> wayPoints}) async {
+      required List<WayPoint> wayPoints,
+      bool alwaysVisible = false}) async {
     assert(wayPoints.isNotEmpty);
 
     List<Map<String, Object?>> pointList = [];
@@ -152,6 +153,7 @@ class MapBoxNavigationViewController {
     args["icon"] = image;
     args["iconSize"] = iconSize;
     args["poi"] = wayPointMap;
+    if (alwaysVisible) args["alwaysVisible"] = true;
 
     return await _methodChannel
         .invokeMethod('setPOIs', args)
@@ -210,6 +212,17 @@ class MapBoxNavigationViewController {
   Future<bool?> finishNavigation() async {
     var success = await _methodChannel.invokeMethod('finishNavigation', null);
     return success;
+  }
+
+  /// Shows [message] as a red banner over the open full-screen navigation
+  /// (read out too, unless [speak] is false) until the driver taps it away or
+  /// the next alert replaces it. Returns false when no navigation screen is
+  /// open — the app should show the message itself.
+  Future<bool> showNavigationAlert(
+      {required String message, bool speak = true}) async {
+    final shown = await _methodChannel.invokeMethod<bool>(
+        'showNavigationAlert', {'message': message, 'speak': speak});
+    return shown ?? false;
   }
 
   /// Recenter map from user action during navigation

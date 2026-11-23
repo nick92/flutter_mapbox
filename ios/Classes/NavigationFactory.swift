@@ -1,5 +1,7 @@
 import Flutter
 import UIKit
+import AVFoundation
+import struct MapboxDirections.Route
 import MapboxMaps
 @_spi(ExperimentalMapboxAPI) import MapboxNavigationCore
 import MapboxNavigationUIKit
@@ -43,6 +45,10 @@ public class NavigationFactory: NSObject, FlutterStreamHandler {
     var _shouldReRoute = true
 
     var _routeCalculationTask: Task<Void, Never>?
+
+    // In-navigation alerts from the app (showNavigationAlert).
+    private var _alertBanner: UIView?
+    private let _alertSpeech = AVSpeechSynthesizer()
 
     // MapboxNavigationProvider enforces a process-wide uniqueness guard (see
     // MapboxNavigationProvider.checkInstanceIsUnique) and hard-crashes with
@@ -200,6 +206,7 @@ public class NavigationFactory: NSObject, FlutterStreamHandler {
             navVC.view.removeFromSuperview()
             _navigationViewController = nil
         } else {
+            dismissAlertBanner()
             navVC.dismiss(animated: true) { [weak self] in
                 self?._navigationViewController = nil
                 result?(true)
@@ -228,6 +235,79 @@ public class NavigationFactory: NSObject, FlutterStreamHandler {
             style.mapStyleURL = url
         }
         return style
+    }
+
+    /// One route as sent in route_built / reroute_along: duration, distance,
+    /// and `coordinates` — the route line as [[lng, lat], ...] so the app can
+    /// check it against its own restrictions data.
+    static func routeEntry(_ route: Route) -> [String: Any] {
+        let coords = (route.shape?.coordinates ?? []).map { [$0.longitude, $0.latitude] }
+        return [
+            "duration": route.expectedTravelTime,
+            "distance": route.distance,
+            "coordinates": coords
+        ]
+    }
+
+    static func routesJson(_ routes: [Route]) -> String? {
+        guard let data = try? JSONSerialization.data(withJSONObject: routes.map(routeEntry)) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    /// Shows [message] as a red banner over the open full-screen navigation,
+    /// read out once, until tapped away or replaced. Returns false when no
+    /// navigation screen is showing.
+    func showNavigationAlert(arguments: NSDictionary?, result: @escaping FlutterResult) {
+        guard let message = arguments?["message"] as? String,
+              let navVC = _navigationViewController,
+              navVC.viewIfLoaded?.window != nil else {
+            result(false)
+            return
+        }
+        let speak = arguments?["speak"] as? Bool ?? true
+        _alertBanner?.removeFromSuperview()
+
+        let label = UILabel()
+        label.text = message
+        label.numberOfLines = 0
+        label.textColor = .white
+        label.font = .boldSystemFont(ofSize: 17)
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let banner = UIView()
+        banner.backgroundColor = UIColor(red: 0xE0 / 255, green: 0x2B / 255, blue: 0x2B / 255, alpha: 1)
+        banner.layer.cornerRadius = 12
+        banner.layer.shadowOpacity = 0.25
+        banner.layer.shadowRadius = 8
+        banner.translatesAutoresizingMaskIntoConstraints = false
+        banner.addSubview(label)
+        banner.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(dismissAlertBanner)))
+
+        let view = navVC.view!
+        view.addSubview(banner)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: banner.topAnchor, constant: 14),
+            label.bottomAnchor.constraint(equalTo: banner.bottomAnchor, constant: -14),
+            label.leadingAnchor.constraint(equalTo: banner.leadingAnchor, constant: 14),
+            label.trailingAnchor.constraint(equalTo: banner.trailingAnchor, constant: -14),
+            banner.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12),
+            banner.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+            // Clear of the bottom trip-progress banner.
+            banner.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -110),
+        ])
+        _alertBanner = banner
+
+        if speak {
+            let utterance = AVSpeechUtterance(string: message)
+            utterance.voice = AVSpeechSynthesisVoice(language: _language)
+            _alertSpeech.speak(utterance)
+        }
+        result(true)
+    }
+
+    @objc func dismissAlertBanner() {
+        _alertBanner?.removeFromSuperview()
+        _alertBanner = nil
     }
 
     func sendEvent(eventType: MapBoxEventType, data: String = "") {
@@ -308,6 +388,17 @@ extension NavigationFactory: NavigationViewControllerDelegate {
             return false
         }
         return true
+    }
+
+    // The SDK rerouted mid-navigation — send the new line so the app can
+    // check it against its restrictions, as it did the original route.
+    public func navigationViewController(
+        _ navigationViewController: NavigationViewController,
+        didRerouteAlong route: Route
+    ) {
+        if let json = Self.routesJson([route]) {
+            sendEvent(eventType: MapBoxEventType.reroute_along, data: json)
+        }
     }
 
     public func navigationViewControllerDidDismiss(
